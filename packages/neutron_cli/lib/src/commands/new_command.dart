@@ -79,7 +79,7 @@ class NewCommand extends Command {
     print('');
     print('Next steps:');
     print('  cd $projectName');
-    print('  dart pub get');
+    print('  neutron pub get');
     print('  neutron dev');
     print('');
     
