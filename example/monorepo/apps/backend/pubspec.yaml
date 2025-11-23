@@ -1,0 +1,13 @@
+name: backend
+description: NeutronX backend application (monorepo example)
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  neutronx:
+    path: ../../../../
+  models:
+    path: ../../packages/models

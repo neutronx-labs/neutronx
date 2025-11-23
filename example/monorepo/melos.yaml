@@ -1,0 +1,43 @@
+name: neutronx_monorepo_example
+repository: https://github.com/neutronx/neutronx
+
+packages:
+  - apps/**
+  - packages/**
+
+command:
+  bootstrap:
+    runPubGetInParallel: true
+
+scripts:
+  analyze:
+    description: Run static analysis for all packages
+    run: dart analyze
+    exec:
+      concurrency: 1
+
+  test:
+    description: Run tests for all packages
+    run: dart test
+    exec:
+      concurrency: 1
+
+  format:
+    description: Format all Dart files
+    run: dart format --set-exit-if-changed .
+
+  backend:start:
+    description: Start the backend server
+    run: dart run bin/server.dart
+    exec:
+      concurrency: 1
+    packageFilters:
+      dirExists: bin
+
+  mobile:run:
+    description: Run the Flutter mobile app
+    run: flutter run
+    exec:
+      concurrency: 1
+    packageFilters:
+      flutter: true

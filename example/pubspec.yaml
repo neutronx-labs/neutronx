@@ -9,8 +9,6 @@ environment:
 dependencies:
   neutronx:
     path: ../
-  models:
-    path: ../packages/models
 
 dev_dependencies:
   lints: ^3.0.0
