@@ -1,10 +1,10 @@
-# NeutronX Pub Wrapper
+# NeutronX Pub Integration
 
-This wrapper allows you to use `sdk: neutronx` syntax in your pubspec.yaml files.
+The NeutronX CLI includes integrated pub support that allows you to use `sdk: neutronx` syntax in your pubspec.yaml files.
 
 ## How It Works
 
-The wrapper intercepts `dart pub` commands and temporarily transforms:
+The `neutron pub` command intercepts pub commands and temporarily transforms:
 
 ```yaml
 dependencies:
@@ -20,7 +20,7 @@ dependencies:
     path: /your/neutronx/path
 ```
 
-Before running pub, then restores the original after.
+Before running pub, then automatically restores the original after.
 
 ## Setup
 
@@ -30,23 +30,18 @@ Before running pub, then restores the original after.
 export NEUTRONX_ROOT="/Users/yourname/neutronx"
 ```
 
-### 2. Create alias for neutron-pub
-
-Add to your `~/.zshrc` or `~/.bashrc`:
+### 2. Install the CLI
 
 ```bash
-alias pub='$NEUTRONX_ROOT/bin/neutron-pub'
+cd neutronx
+./install_cli.sh
 ```
 
-Or add to PATH:
-
-```bash
-export PATH="$NEUTRONX_ROOT/bin:$PATH"
-```
+That's it! No additional configuration needed.
 
 ## Usage
 
-### With SDK Syntax (using wrapper)
+### With SDK Syntax
 
 **pubspec.yaml:**
 ```yaml
@@ -57,12 +52,13 @@ dependencies:
 
 **Commands:**
 ```bash
-neutron-pub get      # Instead of dart pub get
-neutron-pub upgrade
-neutron-pub outdated
+neutron pub get       # Transforms, runs pub get, restores
+neutron pub upgrade   # Transforms, runs pub upgrade, restores
+neutron pub outdated  # Transforms, runs pub outdated, restores
+neutron pub deps      # Works with any pub command!
 ```
 
-### Without Wrapper (standard approach)
+### Without neutron pub (standard approach)
 
 **pubspec.yaml:**
 ```yaml
@@ -79,26 +75,26 @@ dart pub upgrade
 
 ## Pros and Cons
 
-### Using Wrapper (sdk: neutronx syntax)
+### Using `neutron pub` (sdk: neutronx syntax)
 
 **Pros:**
 - ✅ Clean syntax: `sdk: neutronx`
 - ✅ Looks like Flutter SDK
 - ✅ Hides implementation details
+- ✅ Integrated into neutron CLI
+- ✅ Automatic transformation and restoration
 
 **Cons:**
-- ❌ Requires wrapper script
-- ❌ Must use `neutron-pub` instead of `dart pub`
-- ❌ IDE might not understand SDK reference
-- ❌ Adds complexity
+- ❌ Must use `neutron pub` instead of `dart pub`
+- ❌ IDE might not understand SDK reference (shows error)
+- ❌ Adds slight complexity
 
 ### Standard Approach (path dependency)
 
 **Pros:**
 - ✅ Works with standard `dart pub` commands
-- ✅ IDE understands path dependencies
+- ✅ IDE understands path dependencies (no errors)
 - ✅ Transparent - shows actual path
-- ✅ No wrapper needed
 - ✅ Simpler
 
 **Cons:**
@@ -107,19 +103,14 @@ dart pub upgrade
 
 ## Recommendation
 
-**Use the standard path approach** (without wrapper) because:
+**Choose based on your preference:**
 
-1. It's simpler and more transparent
-2. IDEs understand it natively
-3. No special commands needed
-4. Industry standard for local development
-5. The CLI auto-generates it when `NEUTRONX_ROOT` is set
-
-The wrapper is provided as an option if you really want `sdk: neutronx` syntax, but it adds unnecessary complexity for minimal benefit.
+- **Want clean syntax?** Use `sdk: neutronx` with `neutron pub` commands
+- **Want IDE compatibility?** Use auto-generated path dependency (CLI does this when NEUTRONX_ROOT is set)
 
 ## Examples
 
-### Standard Approach (Recommended)
+### Approach 1: Auto-Generated Path (Recommended for IDE compatibility)
 
 ```bash
 # Set environment variable
@@ -141,14 +132,14 @@ dependencies:
     path: /Users/you/neutronx
 ```
 
-### Wrapper Approach (Optional)
+### Approach 2: SDK Syntax (Clean syntax)
 
 ```bash
 # Set environment variable
 export NEUTRONX_ROOT="/Users/you/neutronx"
 
-# Create project with sdk syntax
-neutron new my_app --sdk-syntax
+# Create project
+neutron new my_app
 cd my_app
 ```
 
@@ -159,14 +150,22 @@ dependencies:
     sdk: neutronx
 ```
 
-Then use wrapper:
+Then use `neutron pub`:
 ```bash
-neutron-pub get      # Use wrapper instead of dart pub
-neutron-pub upgrade
+neutron pub get      # Transforms, runs, restores
+neutron pub upgrade
+neutron pub outdated
 ```
 
 ## Technical Details
 
-The wrapper uses `sed` to find and replace the SDK reference before calling `dart pub`. A backup is created and automatically restored after the command completes.
+The `neutron pub` command:
 
-For production use, a more robust YAML parser (like `yq`) could be used instead of `sed`.
+1. Detects `sdk: neutronx` in pubspec.yaml
+2. Creates a backup (.pubspec.yaml.neutron-backup)
+3. Transforms SDK reference to `path: $NEUTRONX_ROOT`
+4. Runs the dart pub command
+5. Automatically restores original pubspec.yaml
+6. Deletes backup
+
+This ensures your source pubspec.yaml always stays clean with `sdk: neutronx` syntax.
