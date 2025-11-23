@@ -23,11 +23,75 @@ NeutronX is designed to work seamlessly with Flutter applications, enabling:
 
 ## 📦 Installation
 
+### Install the CLI Tool
+
+```bash
+# Clone the repository
+git clone https://github.com/neutronx/neutronx.git
+cd neutronx
+
+# Install CLI globally
+./install_cli.sh
+```
+
+Or manually:
+
+```bash
+dart pub global activate --source path packages/neutron_cli
+```
+
+Make sure `~/.pub-cache/bin` is in your PATH.
+
+### Use NeutronX as Dependency
+
 Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   neutronx: ^0.1.0
+```
+
+## 🛠️ CLI Usage
+
+### Create New Project
+
+```bash
+# Standard project
+neutron new my_backend
+cd my_backend
+
+# Monorepo with backend + mobile app
+neutron new my_project --monorepo
+cd my_project
+```
+
+### Generate Code
+
+```bash
+# Generate a complete module (includes service, repository, and CRUD routes)
+neutron generate module products
+
+# Generate a DTO with JSON serialization
+neutron generate dto user --fields="name:String,email:String,age:int"
+
+# Generate a service
+neutron generate service auth
+
+# Generate a repository
+neutron generate repository orders
+```
+
+### Development & Build
+
+```bash
+# Start development server with hot reload
+neutron dev --port 3000
+
+# Build for production
+neutron build --output build/server
+
+# Run production build
+./build/server
 ```
 
 ## 🏃 Quick Start
@@ -68,9 +132,54 @@ void main() async {
 +---------------------------+
 ```
 
-## 📚 Documentation
+## � Project Structure
 
-- [Technical Architecture](./neutron_x_technical_architecture.md)
+### Standard Project
+
+```
+my_backend/
+├── bin/
+│   └── server.dart       # Application entry point
+├── lib/
+│   ├── my_backend.dart
+│   └── src/
+│       ├── modules/      # Feature modules (generated with CLI)
+│       ├── middleware/   # Custom middleware
+│       ├── repositories/ # Data access layer
+│       └── services/     # Business logic
+└── test/                 # Tests
+```
+
+### Monorepo Project
+
+```
+my_project/
+├── apps/
+│   ├── backend/          # NeutronX backend
+│   │   ├── bin/
+│   │   │   └── server.dart
+│   │   └── lib/
+│   │       └── src/
+│   │           ├── modules/
+│   │           ├── repositories/
+│   │           └── services/
+│   └── mobile/           # Flutter mobile app
+│       ├── lib/
+│       └── pubspec.yaml
+└── packages/
+    └── models/           # Shared DTOs between backend and mobile
+        └── lib/
+            └── src/
+                ├── user_dto.dart
+                └── product_dto.dart
+```
+
+## �📚 Documentation
+
+- [Technical Architecture](./docs/neutron_x_technical_architecture.md)
+- [CLI Implementation Guide](./docs/CLI_IMPLEMENTATION.md)
+- [Module System](./docs/MODULE_SYSTEM_IMPLEMENTATION.md)
+- [Test Suite](./docs/TEST_SUITE.md)
 - API Documentation (coming soon)
 - Plugin Development Guide (coming soon)
 
