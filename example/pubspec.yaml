@@ -1,0 +1,16 @@
+name: neutronx_example
+description: Example NeutronX backend application
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  neutronx:
+    path: ../
+  models:
+    path: ../packages/models
+
+dev_dependencies:
+  lints: ^3.0.0

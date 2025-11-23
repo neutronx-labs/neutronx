@@ -1,0 +1,7 @@
+name: models
+description: Shared DTOs and models for NeutronX backend and Flutter frontend
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'

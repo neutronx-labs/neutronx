@@ -1,0 +1,20 @@
+include: package:lints/recommended.yaml
+
+linter:
+  rules:
+    - always_declare_return_types
+    - avoid_print
+    - prefer_single_quotes
+    - prefer_const_constructors
+    - prefer_final_fields
+    - sort_pub_dependencies
+    - unnecessary_await_in_return
+    - use_super_parameters
+
+analyzer:
+  strong-mode:
+    implicit-casts: false
+    implicit-dynamic: false
+  errors:
+    missing_required_param: error
+    missing_return: error
