@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Shell script wrapper for NeutronX CLI
+# This allows running: ./neutron <command> [arguments]
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+dart run "$SCRIPT_DIR/bin/neutron.dart" "$@"
