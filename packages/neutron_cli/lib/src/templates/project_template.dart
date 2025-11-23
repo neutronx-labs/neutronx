@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:recase/recase.dart';
 
 /// Templates for new project generation
@@ -6,7 +7,17 @@ class ProjectTemplate {
 
   ProjectTemplate(this.projectName);
 
-  String get pubspecYaml => '''
+  String get pubspecYaml {
+    final neutronxRoot = Platform.environment['NEUTRONX_ROOT'];
+    final neutronxDep = neutronxRoot != null && neutronxRoot.isNotEmpty
+        ? '''neutronx:
+    path: $neutronxRoot'''
+        : '''neutronx: ^0.1.0  # Update this when published
+  # For now, use:
+  # neutronx:
+  #   path: /path/to/neutronx''';
+    
+    return '''
 name: $projectName
 description: A NeutronX backend application
 version: 0.1.0
@@ -15,13 +26,13 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  neutronx:
-    path: ../neutronx  # Adjust path as needed
+  $neutronxDep
 
 dev_dependencies:
   lints: ^3.0.0
   test: ^1.24.0
 ''';
+  }
 
   String get analysisOptions => '''
 include: package:lints/recommended.yaml
@@ -203,7 +214,17 @@ final user = UserDto(id: '1', name: 'John', email: 'john@example.com');
 ```
 ''';
 
-  String get backendPubspec => '''
+  String get backendPubspec {
+    final neutronxRoot = Platform.environment['NEUTRONX_ROOT'];
+    final neutronxDep = neutronxRoot != null && neutronxRoot.isNotEmpty
+        ? '''neutronx:
+    path: $neutronxRoot'''
+        : '''neutronx: ^0.1.0  # Update when published
+  # For now, use:
+  # neutronx:
+  #   path: /path/to/neutronx''';
+    
+    return '''
 name: backend
 description: ${projectName.pascalCase} backend application
 version: 0.1.0
@@ -212,8 +233,7 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  neutronx:
-    path: ../../../  # Path to NeutronX root
+  $neutronxDep
   models:
     path: ../../packages/models
 
@@ -221,6 +241,7 @@ dev_dependencies:
   lints: ^3.0.0
   test: ^1.24.0
 ''';
+  }
 
   String get mobilePubspec => '''
 name: mobile

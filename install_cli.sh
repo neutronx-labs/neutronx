@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Installation script for NeutronX CLI
-# This script installs the neutron command globally
+# Installation script for NeutronX SDK and CLI
+# This sets up NeutronX to work like the Flutter SDK
 
 set -e
 
-echo "Installing NeutronX CLI..."
+echo "Installing NeutronX SDK..."
 echo ""
 
 # Check if running from NeutronX root
@@ -14,7 +14,9 @@ if [ ! -f "packages/neutron_cli/pubspec.yaml" ]; then
     exit 1
 fi
 
-# Install dependencies
+# Get the absolute path to NeutronX
+NEUTRONX_PATH="$(pwd)"
+
 echo "→ Installing CLI dependencies..."
 cd packages/neutron_cli
 dart pub get
@@ -28,13 +30,25 @@ dart pub global activate --source path packages/neutron_cli
 echo ""
 echo "✓ Installation complete!"
 echo ""
-echo "Make sure ~/.pub-cache/bin is in your PATH."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📦 NeutronX SDK Setup"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "To add it, add this to your shell profile (~/.zshrc, ~/.bashrc):"
-echo "  export PATH=\"\$PATH\":\$HOME/.pub-cache/bin"
+echo "To use NeutronX as an SDK (like Flutter), add these to your"
+echo "shell profile (~/.zshrc or ~/.bashrc):"
+echo ""
+echo "  export NEUTRONX_ROOT=\"$NEUTRONX_PATH\""
+echo "  export PATH=\"\$PATH:\$HOME/.pub-cache/bin\""
+echo ""
+echo "Then reload your shell:"
+echo "  source ~/.zshrc  # or source ~/.bashrc"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "Usage:"
-echo "  neutron --help"
-echo "  neutron new my_project"
+echo "  neutron new my_project    # Creates project with 'sdk: neutronx'"
 echo "  neutron generate module users"
+echo "  neutron dev"
+echo ""
+echo "See docs/SDK_SETUP.md for complete setup guide"
 echo ""

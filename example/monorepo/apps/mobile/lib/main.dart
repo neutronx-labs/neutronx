@@ -42,22 +42,20 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadProducts() async {
     setState(() => isLoading = true);
-    
+
     try {
       // Call NeutronX backend
       final response = await http.get(
         Uri.parse('http://localhost:3000/products'),
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final productsList = data['products'] as List;
-        
+
         // Parse using shared DTOs
         setState(() {
-          products = productsList
-              .map((json) => ProductDto.fromJson(json))
-              .toList();
+          products = productsList.map((json) => ProductDto.fromJson(json)).toList();
         });
       }
     } catch (e) {

@@ -22,7 +22,7 @@ void main() {
 
       expect(response.statusCode, equals(200));
       expect(response.headers['content-type'], equals('application/json; charset=utf-8'));
-      
+
       final decoded = jsonDecode(utf8.decode(response.body));
       expect(decoded['message'], equals('Hello'));
     });
@@ -140,7 +140,8 @@ void main() {
       final updated = original.withHeaders({'x-custom': 'value'});
 
       expect(updated.headers['x-custom'], equals('value'));
-      expect(updated.headers['content-type'], equals('text/plain; charset=utf-8')); // Original preserved
+      expect(updated.headers['content-type'],
+          equals('text/plain; charset=utf-8')); // Original preserved
     });
 
     test('withHeaders() overwrites existing headers', () {

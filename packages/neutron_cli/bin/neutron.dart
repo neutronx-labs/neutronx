@@ -5,7 +5,7 @@ import 'package:neutron_cli/neutron_cli.dart';
 
 void main(List<String> arguments) async {
   final cli = NeutronCli();
-  
+
   try {
     await cli.run(arguments);
   } on CliException catch (e) {

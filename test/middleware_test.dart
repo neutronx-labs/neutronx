@@ -36,13 +36,15 @@ void main() {
       await wrappedHandler(mockReq);
 
       // Onion model: middleware1 → middleware2 → handler → middleware2 → middleware1
-      expect(executionOrder, equals([
-        'middleware1-before',
-        'middleware2-before',
-        'handler',
-        'middleware2-after',
-        'middleware1-after',
-      ]));
+      expect(
+          executionOrder,
+          equals([
+            'middleware1-before',
+            'middleware2-before',
+            'handler',
+            'middleware2-after',
+            'middleware1-after',
+          ]));
     });
 
     test('MiddlewareUtils.pipeline() creates handler with middleware', () async {

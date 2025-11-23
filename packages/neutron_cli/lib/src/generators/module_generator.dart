@@ -9,7 +9,7 @@ class ModuleGenerator {
   /// Generate all files for a module
   Map<String, String> generate() {
     final rc = ReCase(name);
-    
+
     return {
       'lib/src/modules/${name}_module.dart': _moduleFile(rc),
       'lib/src/services/${name}_service.dart': _serviceFile(rc),

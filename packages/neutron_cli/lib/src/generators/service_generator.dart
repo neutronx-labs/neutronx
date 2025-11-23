@@ -8,7 +8,7 @@ class ServiceGenerator {
 
   String generate() {
     final rc = ReCase(name);
-    
+
     return '''
 import '../repositories/${name}_repository.dart';
 

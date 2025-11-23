@@ -23,33 +23,39 @@ NeutronX is designed to work seamlessly with Flutter applications, enabling:
 
 ## 📦 Installation
 
-### Install the CLI Tool
+### 1. Clone and Setup NeutronX SDK
 
 ```bash
 # Clone the repository
 git clone https://github.com/neutronx/neutronx.git
 cd neutronx
 
-# Install CLI globally
+# Install CLI and setup SDK
 ./install_cli.sh
 ```
 
-Or manually:
+### 2. Set Environment Variable
+
+Add to your `~/.zshrc` or `~/.bashrc`:
 
 ```bash
-dart pub global activate --source path packages/neutron_cli
+export NEUTRONX_ROOT="/Users/yourname/neutronx"  # Update with your path
+export PATH="$PATH:$HOME/.pub-cache/bin"
 ```
 
-Make sure `~/.pub-cache/bin` is in your PATH.
-
-### Use NeutronX as Dependency
-
-Add to your `pubspec.yaml`:
-
-```yaml
-dependencies:
-  neutronx: ^0.1.0
+Then reload:
+```bash
+source ~/.zshrc
 ```
+
+### 3. Verify Installation
+
+```bash
+neutron --version
+echo $NEUTRONX_ROOT  # Should show your NeutronX path
+```
+
+> **Note**: When `NEUTRONX_ROOT` is set, new projects automatically use your local NeutronX installation! No path configuration needed in pubspec.yaml.
 
 ## 🛠️ CLI Usage
 

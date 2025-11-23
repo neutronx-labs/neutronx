@@ -8,7 +8,7 @@ class DtoGenerator {
 
   String generate() {
     final rc = ReCase(name);
-    
+
     return '''
 /// Data Transfer Object for ${rc.titleCase}
 class ${rc.pascalCase}Dto {

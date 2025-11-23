@@ -80,8 +80,19 @@ class NewCommand extends Command {
     print('Next steps:');
     print('  cd $projectName');
     print('  dart pub get');
-    print('  dart run');
+    print('  neutron dev');
     print('');
+    
+    // Check if NEUTRONX_ROOT is set
+    final neutronxRoot = Platform.environment['NEUTRONX_ROOT'];
+    if (neutronxRoot == null || neutronxRoot.isEmpty) {
+      print('⚠️  Note: NEUTRONX_ROOT environment variable not set');
+      print('   For SDK-style usage, set it to your NeutronX directory:');
+      print('   export NEUTRONX_ROOT=/path/to/neutronx');
+      print('');
+      print('   Or see docs/SDK_SETUP.md for complete setup guide');
+      print('');
+    }
   }
 
   bool _isValidProjectName(String name) {
@@ -126,7 +137,7 @@ class NewCommand extends Command {
     ]);
 
     print('Generating files...');
-    
+
     // Root files
     await _writeFile('$projectName/README.md', template.monorepoReadme);
     await _writeFile('$projectName/.gitignore', template.gitignore);

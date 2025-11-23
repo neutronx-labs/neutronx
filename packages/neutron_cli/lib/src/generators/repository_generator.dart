@@ -8,7 +8,7 @@ class RepositoryGenerator {
 
   String generate() {
     final rc = ReCase(name);
-    
+
     return '''
 /// Repository for ${rc.titleCase} data access
 class ${rc.pascalCase}Repository {

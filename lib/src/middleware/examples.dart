@@ -74,9 +74,8 @@ Middleware errorHandlerMiddleware({
       } on FormatException catch (e) {
         return Response.badRequest(e.message);
       } catch (e, stackTrace) {
-        final message = showStackTrace
-            ? 'Internal Server Error: $e\n\n$stackTrace'
-            : 'Internal Server Error';
+        final message =
+            showStackTrace ? 'Internal Server Error: $e\n\n$stackTrace' : 'Internal Server Error';
 
         return Response.internalServerError(message);
       }
@@ -136,9 +135,7 @@ Middleware rateLimitMiddleware({
 
   return (Handler next) {
     return (Request req) async {
-      final clientId = req.headers['x-forwarded-for'] ?? 
-                       req.headers['x-real-ip'] ?? 
-                       'unknown';
+      final clientId = req.headers['x-forwarded-for'] ?? req.headers['x-real-ip'] ?? 'unknown';
 
       final now = DateTime.now();
       final windowStart = now.subtract(window);

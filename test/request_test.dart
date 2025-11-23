@@ -72,7 +72,7 @@ void main() {
     test('json() parses JSON body', () async {
       final jsonData = {'name': 'John', 'age': 30};
       final bodyData = utf8.encode(jsonEncode(jsonData));
-      
+
       final request = Request.test(
         method: 'POST',
         uri: Uri.parse('http://localhost/test'),
@@ -88,7 +88,7 @@ void main() {
     test('json() caches parsed result', () async {
       final jsonData = {'name': 'John'};
       final bodyData = utf8.encode(jsonEncode(jsonData));
-      
+
       final request = Request.test(
         method: 'POST',
         uri: Uri.parse('http://localhost/test'),
@@ -98,7 +98,7 @@ void main() {
 
       final parsed1 = await request.json();
       final parsed2 = await request.json();
-      
+
       expect(parsed1, same(parsed2));
     });
 

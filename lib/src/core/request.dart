@@ -81,7 +81,7 @@ class Request {
   }) async {
     final uri = httpRequest.uri;
     final headers = <String, String>{};
-    
+
     httpRequest.headers.forEach((name, values) {
       headers[name.toLowerCase()] = values.join(', ');
     });
@@ -189,8 +189,7 @@ class Request {
   bool get isJson => contentType?.contains('application/json') ?? false;
 
   /// Checks if the request is a form data request
-  bool get isForm =>
-      contentType?.contains('application/x-www-form-urlencoded') ?? false;
+  bool get isForm => contentType?.contains('application/x-www-form-urlencoded') ?? false;
 
   /// Checks if the request is multipart form data
   bool get isMultipart => contentType?.contains('multipart/form-data') ?? false;

@@ -5,7 +5,7 @@
 ///
 /// Usage:
 ///   dart run bin/neutron.dart <command> [arguments]
-///   
+///
 /// Or make it executable:
 ///   chmod +x bin/neutron.dart
 ///   ./bin/neutron.dart <command> [arguments]

@@ -8,7 +8,7 @@ void main() async {
   // Example: Using shared DTOs
   router.get('/users/:id', (req) async {
     final id = req.params['id'];
-    
+
     // Create a UserDto that's shared with Flutter
     final user = UserDto(
       id: id!,
@@ -16,7 +16,7 @@ void main() async {
       email: 'john@example.com',
       createdAt: DateTime.now(),
     );
-    
+
     return Response.json(user.toJson());
   });
 
@@ -38,7 +38,7 @@ void main() async {
         stock: 25,
       ),
     ];
-    
+
     return Response.json({
       'products': products.map((p) => p.toJson()).toList(),
     });

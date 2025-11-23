@@ -65,7 +65,7 @@ void main() async {
   // Start the server
   print('Starting server...');
   final server = await app.listen(port: 3000);
-  
+
   print('');
   print('🚀 NeutronX Example Server is running!');
   print('');

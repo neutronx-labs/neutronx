@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# NeutronX Pub Wrapper
+# This allows using "sdk: neutronx" in pubspec.yaml
+# by transforming it to "path: $NEUTRONX_ROOT" before running pub
+
+set -e
+
+PUBSPEC_FILE="pubspec.yaml"
+BACKUP_FILE=".pubspec.yaml.neutron-backup"
+
+# Function to transform pubspec.yaml
+transform_pubspec() {
+    if [ ! -f "$PUBSPEC_FILE" ]; then
+        return 0
+    fi
+    
+    # Check if NEUTRONX_ROOT is set
+    if [ -z "$NEUTRONX_ROOT" ]; then
+        echo "Error: NEUTRONX_ROOT environment variable not set"
+        echo "Please set it to your NeutronX installation path:"
+        echo "  export NEUTRONX_ROOT=/path/to/neutronx"
+        exit 1
+    fi
+    
+    # Backup original
+    cp "$PUBSPEC_FILE" "$BACKUP_FILE"
+    
+    # Transform "sdk: neutronx" to "path: $NEUTRONX_ROOT"
+    # This is a simple sed replacement - could use yq for more robust YAML handling
+    sed -i.tmp \
+        -e '/neutronx:/,/sdk: neutronx/s|sdk: neutronx|path: '"$NEUTRONX_ROOT"'|g' \
+        "$PUBSPEC_FILE"
+    rm -f "${PUBSPEC_FILE}.tmp"
+}
+
+# Function to restore original pubspec.yaml
+restore_pubspec() {
+    if [ -f "$BACKUP_FILE" ]; then
+        mv "$BACKUP_FILE" "$PUBSPEC_FILE"
+    fi
+}
+
+# Trap to ensure we always restore on exit
+trap restore_pubspec EXIT INT TERM
+
+# Commands that need pubspec transformation
+case "$1" in
+    get|upgrade|downgrade|deps|outdated)
+        transform_pubspec
+        ;;
+esac
+
+# Run the actual dart pub command
+dart pub "$@"
+
+# Cleanup is handled by trap
