@@ -45,7 +45,8 @@ class NewCommand extends Command {
     }
 
     if (results.rest.isEmpty) {
-      throw CliException('Project name is required\nUsage: neutron new <project-name>');
+      throw CliException(
+          'Project name is required\nUsage: neutron new <project-name>');
     }
 
     final projectName = results.rest[0];
@@ -106,21 +107,34 @@ class NewCommand extends Command {
 
     print('Creating directories...');
     await _createDirectories(projectName, [
-      'lib/src/core',
-      'lib/src/modules',
+      'lib/src/modules/home/controllers',
+      'lib/src/modules/home/services',
+      'lib/src/modules/home/repositories',
       'lib/src/middleware',
-      'lib/src/repositories',
-      'lib/src/services',
       'test',
     ]);
 
     print('Generating files...');
     await _writeFile('$projectName/pubspec.yaml', template.pubspecYaml);
-    await _writeFile('$projectName/analysis_options.yaml', template.analysisOptions);
+    await _writeFile(
+        '$projectName/analysis_options.yaml', template.analysisOptions);
     await _writeFile('$projectName/.gitignore', template.gitignore);
     await _writeFile('$projectName/README.md', template.readme);
-    await _writeFile('$projectName/lib/${projectName}.dart', template.mainLibrary());
-    await _writeFile('$projectName/lib/src/modules/home_module.dart', template.homeModule);
+    await _writeFile(
+        '$projectName/lib/${projectName}.dart', template.mainLibrary());
+    await _writeFile(
+        '$projectName/lib/src/modules/modules.dart', template.modulesIndex);
+    await _writeFile('$projectName/lib/src/modules/home/home_module.dart',
+        template.homeModule);
+    await _writeFile(
+        '$projectName/lib/src/modules/home/controllers/home_controller.dart',
+        template.homeController);
+    await _writeFile(
+        '$projectName/lib/src/modules/home/services/home_service.dart',
+        template.homeService);
+    await _writeFile(
+        '$projectName/lib/src/modules/home/repositories/home_repository.dart',
+        template.homeRepository);
     await _writeFile('$projectName/bin/server.dart', template.serverMain());
     await _writeFile('$projectName/test/health_test.dart', template.healthTest);
 
@@ -132,7 +146,9 @@ class NewCommand extends Command {
 
     print('Creating monorepo structure...');
     await _createDirectories(projectName, [
-      'apps/backend/lib/src/modules',
+      'apps/backend/lib/src/modules/home/controllers',
+      'apps/backend/lib/src/modules/home/services',
+      'apps/backend/lib/src/modules/home/repositories',
       'apps/backend/lib/src/middleware',
       'apps/backend/test',
       'apps/mobile/lib',
@@ -146,30 +162,55 @@ class NewCommand extends Command {
     await _writeFile('$projectName/.gitignore', template.gitignore);
 
     // Backend app
-    await _writeFile('$projectName/apps/backend/pubspec.yaml', template.backendPubspec);
-    await _writeFile('$projectName/apps/backend/analysis_options.yaml', template.analysisOptions);
+    await _writeFile(
+        '$projectName/apps/backend/pubspec.yaml', template.backendPubspec);
+    await _writeFile('$projectName/apps/backend/analysis_options.yaml',
+        template.analysisOptions);
     await _writeFile(
       '$projectName/apps/backend/bin/server.dart',
-      template.serverMain(packageName: 'backend', displayName: ReCase(projectName).pascalCase),
+      template.serverMain(
+          packageName: 'backend', displayName: ReCase(projectName).pascalCase),
     );
     await _writeFile(
       '$projectName/apps/backend/lib/backend.dart',
       template.mainLibrary(packageName: 'backend'),
     );
     await _writeFile(
-      '$projectName/apps/backend/lib/src/modules/home_module.dart',
+      '$projectName/apps/backend/lib/src/modules/modules.dart',
+      template.modulesIndex,
+    );
+    await _writeFile(
+      '$projectName/apps/backend/lib/src/modules/home/home_module.dart',
       template.homeModule,
     );
-    await _writeFile('$projectName/apps/backend/test/health_test.dart', template.healthTest);
+    await _writeFile(
+      '$projectName/apps/backend/lib/src/modules/home/controllers/home_controller.dart',
+      template.homeController,
+    );
+    await _writeFile(
+      '$projectName/apps/backend/lib/src/modules/home/services/home_service.dart',
+      template.homeService,
+    );
+    await _writeFile(
+      '$projectName/apps/backend/lib/src/modules/home/repositories/home_repository.dart',
+      template.homeRepository,
+    );
+    await _writeFile(
+        '$projectName/apps/backend/test/health_test.dart', template.healthTest);
 
     // Mobile app placeholder
-    await _writeFile('$projectName/apps/mobile/pubspec.yaml', template.mobilePubspec);
-    await _writeFile('$projectName/apps/mobile/lib/main.dart', template.mobileMain);
+    await _writeFile(
+        '$projectName/apps/mobile/pubspec.yaml', template.mobilePubspec);
+    await _writeFile(
+        '$projectName/apps/mobile/lib/main.dart', template.mobileMain);
 
     // Shared models package
-    await _writeFile('$projectName/packages/models/pubspec.yaml', template.modelsPubspec);
-    await _writeFile('$projectName/packages/models/lib/models.dart', template.modelsLibrary);
-    await _writeFile('$projectName/packages/models/lib/src/user_dto.dart', template.userDto);
+    await _writeFile(
+        '$projectName/packages/models/pubspec.yaml', template.modelsPubspec);
+    await _writeFile(
+        '$projectName/packages/models/lib/models.dart', template.modelsLibrary);
+    await _writeFile(
+        '$projectName/packages/models/lib/src/user_dto.dart', template.userDto);
 
     print('✓ Created monorepo structure');
   }

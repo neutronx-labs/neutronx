@@ -119,10 +119,14 @@ $projectName/
 ├── lib/
 │   ├── ${projectName}.dart
 │   └── src/
-│       ├── modules/      # Feature modules
-│       ├── middleware/   # Custom middleware
-│       ├── repositories/ # Data access layer
-│       └── services/     # Business logic
+│       ├── modules/      # Feature modules (self-contained)
+│       │   ├── modules.dart        # Module registry (auto-adds generated modules)
+│       │   └── home/               # Example module
+│       │       ├── controllers/
+│       │       ├── home_module.dart
+│       │       ├── services/
+│       │       └── repositories/
+│       └── middleware/   # Custom middleware
 └── test/                 # Tests
 ```
 
@@ -138,12 +142,30 @@ $projectName/
 /// ${rc.pascalCase} backend application
 library $pkg;
 
-export 'src/modules/home_module.dart';
+export 'src/modules/modules.dart';
 ''';
   }
 
+  String get modulesIndex => '''
+import 'package:neutronx/neutronx.dart';
+
+import 'home/home_module.dart';
+// [MODULE_IMPORTS]
+
+export 'home/home_module.dart';
+// [MODULE_EXPORTS]
+
+List<NeutronModule> buildModules() => [
+  HomeModule(),
+  // [MODULE_REGISTRATIONS]
+];
+''';
+
   String get homeModule => '''
 import 'package:neutronx/neutronx.dart';
+import 'controllers/home_controller.dart';
+import 'services/home_service.dart';
+import 'repositories/home_repository.dart';
 
 class HomeModule extends NeutronModule {
   @override
@@ -151,12 +173,63 @@ class HomeModule extends NeutronModule {
 
   @override
   Future<void> register(ModuleContext ctx) async {
-    ctx.router.get('/', (req) async {
-      return Response.json({
-        'module': 'home',
-        'message': 'Hello from HomeModule',
-      });
-    });
+    // Register dependencies
+    ctx.container.registerLazySingleton<HomeRepository>(
+      (c) => HomeRepository(),
+    );
+
+    ctx.container.registerLazySingleton<HomeService>(
+      (c) => HomeService(c.get<HomeRepository>()),
+    );
+
+    // Wire routes via controller
+    final service = ctx.container.get<HomeService>();
+    HomeController(service).register(ctx.router);
+  }
+}
+''';
+
+  String get homeController => '''
+import 'package:neutronx/neutronx.dart';
+import '../services/home_service.dart';
+
+class HomeController {
+  final HomeService _service;
+
+  HomeController(this._service);
+
+  void register(Router router) {
+    router.get('/', _welcome);
+  }
+
+  Future<Response> _welcome(Request req) async {
+    final data = await _service.welcome();
+    return Response.json(data);
+  }
+}
+''';
+
+  String get homeService => '''
+import '../repositories/home_repository.dart';
+
+class HomeService {
+  final HomeRepository _repository;
+
+  HomeService(this._repository);
+
+  Future<Map<String, dynamic>> welcome() async {
+    return _repository.welcome();
+  }
+}
+''';
+
+  String get homeRepository => '''
+class HomeRepository {
+  Future<Map<String, dynamic>> welcome() async {
+    return {
+      'module': 'home',
+      'message': 'Hello from HomeModule',
+    };
   }
 }
 ''';
@@ -192,7 +265,7 @@ void main() {
     return '''
 import 'dart:io';
 import 'package:neutronx/neutronx.dart';
-import 'package:$pkg/src/modules/home_module.dart';
+import 'package:$pkg/$pkg.dart';
 
 void main() async {
   final app = NeutronApp();
@@ -234,7 +307,7 @@ void main() async {
   ]);
 
   // Feature modules
-  app.registerModule(HomeModule());
+  app.registerModules(buildModules());
 
   // Start server
   final server = await app.listen(port: 3000);

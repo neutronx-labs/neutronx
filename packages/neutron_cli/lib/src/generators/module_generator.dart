@@ -11,16 +11,20 @@ class ModuleGenerator {
     final rc = ReCase(name);
 
     return {
-      'lib/src/modules/${name}_module.dart': _moduleFile(rc),
-      'lib/src/services/${name}_service.dart': _serviceFile(rc),
-      'lib/src/repositories/${name}_repository.dart': _repositoryFile(rc),
+      'lib/src/modules/$name/${name}_module.dart': _moduleFile(rc),
+      'lib/src/modules/$name/controllers/${name}_controller.dart':
+          _controllerFile(rc),
+      'lib/src/modules/$name/services/${name}_service.dart': _serviceFile(rc),
+      'lib/src/modules/$name/repositories/${name}_repository.dart':
+          _repositoryFile(rc),
     };
   }
 
   String _moduleFile(ReCase rc) => '''
 import 'package:neutronx/neutronx.dart';
-import '../services/${name}_service.dart';
-import '../repositories/${name}_repository.dart';
+import 'controllers/${name}_controller.dart';
+import 'services/${name}_service.dart';
+import 'repositories/${name}_repository.dart';
 
 /// ${rc.titleCase} module
 class ${rc.pascalCase}Module extends NeutronModule {
@@ -40,57 +44,7 @@ class ${rc.pascalCase}Module extends NeutronModule {
 
     // Register routes
     final service = context.container.get<${rc.pascalCase}Service>();
-    final router = context.router;
-
-    // GET /${rc.paramCase}
-    router.get('/', (req) async {
-      final items = await service.getAll();
-      return Response.json(items);
-    });
-
-    // GET /${rc.paramCase}/:id
-    router.get('/:id', (req) async {
-      final id = req.params['id']!;
-      final item = await service.getById(id);
-      
-      if (item == null) {
-        return Response.notFound('${rc.titleCase} not found');
-      }
-      
-      return Response.json(item);
-    });
-
-    // POST /${rc.paramCase}
-    router.post('/', (req) async {
-      final data = await req.json();
-      final item = await service.create(data);
-      return Response.json(item, statusCode: 201);
-    });
-
-    // PUT /${rc.paramCase}/:id
-    router.put('/:id', (req) async {
-      final id = req.params['id']!;
-      final data = await req.json();
-      final item = await service.update(id, data);
-      
-      if (item == null) {
-        return Response.notFound('${rc.titleCase} not found');
-      }
-      
-      return Response.json(item);
-    });
-
-    // DELETE /${rc.paramCase}/:id
-    router.delete('/:id', (req) async {
-      final id = req.params['id']!;
-      final success = await service.delete(id);
-      
-      if (!success) {
-        return Response.notFound('${rc.titleCase} not found');
-      }
-      
-      return Response.empty();
-    });
+    ${rc.pascalCase}Controller(service).register(context.router);
   }
 
   @override
@@ -101,6 +55,70 @@ class ${rc.pascalCase}Module extends NeutronModule {
   @override
   Future<void> onReady() async {
     print('${rc.titleCase}Module: Ready');
+  }
+}
+''';
+
+  String _controllerFile(ReCase rc) => '''
+import 'package:neutronx/neutronx.dart';
+import '../services/${name}_service.dart';
+
+class ${rc.pascalCase}Controller {
+  final ${rc.pascalCase}Service _service;
+
+  ${rc.pascalCase}Controller(this._service);
+
+  void register(Router router) {
+    router.get('/', _getAll);
+    router.get('/:id', _getById);
+    router.post('/', _create);
+    router.put('/:id', _update);
+    router.delete('/:id', _delete);
+  }
+
+  Future<Response> _getAll(Request req) async {
+    final items = await _service.getAll();
+    return Response.json(items);
+  }
+
+  Future<Response> _getById(Request req) async {
+    final id = req.params['id']!;
+    final item = await _service.getById(id);
+
+    if (item == null) {
+      return Response.notFound('${rc.titleCase} not found');
+    }
+
+    return Response.json(item);
+  }
+
+  Future<Response> _create(Request req) async {
+    final data = await req.json();
+    final item = await _service.create(data);
+    return Response.json(item, statusCode: 201);
+  }
+
+  Future<Response> _update(Request req) async {
+    final id = req.params['id']!;
+    final data = await req.json();
+    final item = await _service.update(id, data);
+
+    if (item == null) {
+      return Response.notFound('${rc.titleCase} not found');
+    }
+
+    return Response.json(item);
+  }
+
+  Future<Response> _delete(Request req) async {
+    final id = req.params['id']!;
+    final success = await _service.delete(id);
+
+    if (!success) {
+      return Response.notFound('${rc.titleCase} not found');
+    }
+
+    return Response.empty();
   }
 }
 ''';

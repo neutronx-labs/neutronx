@@ -157,10 +157,13 @@ my_backend/
 ├── lib/
 │   ├── my_backend.dart
 │   └── src/
-│       ├── modules/      # Feature modules (generated with CLI)
-│       ├── middleware/   # Custom middleware
-│       ├── repositories/ # Data access layer
-│       └── services/     # Business logic
+│       ├── modules/      # Feature modules (self-contained)
+│       │   ├── modules.dart        # Module registry (auto-populated)
+│       │   └── home/               # Example module
+│       │       ├── home_module.dart
+│       │       ├── services/
+│       │       └── repositories/
+│       └── middleware/   # Custom middleware
 └── test/                 # Tests
 ```
 
@@ -174,9 +177,12 @@ my_project/
 │   │   │   └── server.dart
 │   │   └── lib/
 │   │       └── src/
-│   │           ├── modules/
-│   │           ├── repositories/
-│   │           └── services/
+│   │           └── modules/
+│   │               ├── modules.dart
+│   │               └── home/
+│   │                   ├── home_module.dart
+│   │                   ├── services/
+│   │                   └── repositories/
 │   └── mobile/           # Flutter mobile app
 │       ├── lib/
 │       └── pubspec.yaml

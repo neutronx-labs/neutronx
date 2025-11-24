@@ -91,9 +91,11 @@ Generates code with proper structure and boilerplate.
 
 #### Module (`module` or `m`)
 Generates a complete module with service and repository:
-- `lib/src/modules/{name}_module.dart`
-- `lib/src/services/{name}_service.dart`
-- `lib/src/repositories/{name}_repository.dart`
+- `lib/src/modules/{name}/{name}_module.dart`
+- `lib/src/modules/{name}/controllers/{name}_controller.dart`
+- `lib/src/modules/{name}/services/{name}_service.dart`
+- `lib/src/modules/{name}/repositories/{name}_repository.dart`
+- `lib/src/modules/modules.dart` (registry auto-updated)
 
 ```bash
 neutron generate module users

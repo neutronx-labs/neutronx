@@ -121,12 +121,11 @@ neutron dev
 neutron generate module users
 
 # This creates:
-# - lib/src/modules/users_module.dart
-# - lib/src/services/users_service.dart
-# - lib/src/repositories/users_repository.dart
-
-# Register in your app
-# app.registerModule(UsersModule());
+# - lib/src/modules/users/users_module.dart
+# - lib/src/modules/users/controllers/users_controller.dart
+# - lib/src/modules/users/services/users_service.dart
+# - lib/src/modules/users/repositories/users_repository.dart
+# - lib/src/modules/modules.dart (updated to include UsersModule)
 ```
 
 ### Build for Production

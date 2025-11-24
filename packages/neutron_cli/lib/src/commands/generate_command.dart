@@ -52,7 +52,8 @@ class GenerateCommand extends Command {
     }
 
     if (results.rest.length < 2) {
-      throw CliException('Name is required\nUsage: neutron generate <type> <name>');
+      throw CliException(
+          'Name is required\nUsage: neutron generate <type> <name>');
     }
 
     final type = results.rest[0];
@@ -108,13 +109,13 @@ class GenerateCommand extends Command {
       print('  ✓ ${entry.key}');
     }
 
+    await _updateModuleRegistry(name);
+
     print('');
     print('Module generated successfully!');
     print('');
-    print('Next steps:');
-    print('  1. Register module in your NeutronApp:');
-    print('     app.registerModule(${name.pascalCase}Module());');
-    print('');
+    print(
+        'Module registry updated: buildModules() now includes ${name.pascalCase}Module.');
   }
 
   Future<void> _generateDto(String name) async {
@@ -167,4 +168,63 @@ class GenerateCommand extends Command {
     await file.create(recursive: true);
     await file.writeAsString(content);
   }
+
+  Future<void> _updateModuleRegistry(String name) async {
+    final rc = ReCase(name);
+    const markerImports = '// [MODULE_IMPORTS]';
+    const markerExports = '// [MODULE_EXPORTS]';
+    const markerRegistrations = '// [MODULE_REGISTRATIONS]';
+    const registryPath = 'lib/src/modules/modules.dart';
+    final registryFile = File(registryPath);
+
+    if (!await registryFile.exists()) {
+      await registryFile.create(recursive: true);
+      await registryFile.writeAsString(_emptyModuleRegistryTemplate());
+    }
+
+    var content = await registryFile.readAsString();
+
+    // Ensure markers exist
+    if (!content.contains(markerImports) ||
+        !content.contains(markerExports) ||
+        !content.contains(markerRegistrations)) {
+      content = _emptyModuleRegistryTemplate();
+    }
+
+    final importLine = "import '${rc.snakeCase}/${rc.snakeCase}_module.dart';";
+    final exportLine = "export '${rc.snakeCase}/${rc.snakeCase}_module.dart';";
+    final registrationLine = '  ${rc.pascalCase}Module(),';
+
+    if (!content.contains(importLine)) {
+      content =
+          content.replaceFirst(markerImports, '$importLine\n$markerImports');
+    }
+
+    if (!content.contains(exportLine)) {
+      content =
+          content.replaceFirst(markerExports, '$exportLine\n$markerExports');
+    }
+
+    if (!content.contains(registrationLine)) {
+      content = content.replaceFirst(
+        markerRegistrations,
+        '$registrationLine\n  $markerRegistrations',
+      );
+    }
+
+    await registryFile.writeAsString(content);
+  }
+
+  String _emptyModuleRegistryTemplate() => '''
+import 'package:neutronx/neutronx.dart';
+
+// [MODULE_IMPORTS]
+
+// Re-export modules
+// [MODULE_EXPORTS]
+
+List<NeutronModule> buildModules() => [
+  // [MODULE_REGISTRATIONS]
+];
+''';
 }
