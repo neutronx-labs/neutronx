@@ -30,7 +30,7 @@ For local development with NeutronX, update your project's `pubspec.yaml`:
 ```yaml
 dependencies:
   neutronx:
-    path: /absolute/path/to/neutronx
+    path: /absolute/path/to/neutronx/packages/neutronx
 ```
 
 **Example**:
@@ -38,7 +38,7 @@ dependencies:
 ```yaml
 dependencies:
   neutronx:
-    path: /Users/nikhil/NeutronX
+    path: /Users/nikhil/NeutronX/packages/neutronx
 ```
 
 ### Steps for Local Development:
@@ -53,7 +53,7 @@ dependencies:
    ```yaml
    dependencies:
      neutronx:
-       path: /Users/nikhil/NeutronX  # Use your actual path
+       path: /Users/nikhil/NeutronX/packages/neutronx  # Use your actual path
    ```
 
 3. Install dependencies:

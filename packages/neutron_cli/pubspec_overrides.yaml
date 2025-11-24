@@ -1,0 +1,3 @@
+dependency_overrides:
+  neutronx:
+    path: ../neutronx

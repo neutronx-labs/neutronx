@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:args/args.dart';
+import 'package:path/path.dart' as p;
 import 'commands/command.dart';
 import 'commands/new_command.dart';
 import 'commands/generate_command.dart';
@@ -131,6 +132,9 @@ Examples:
       print('  export NEUTRONX_ROOT=/path/to/neutronx');
       throw CliException('NEUTRONX_ROOT not set', exitCode: 1);
     }
+    final neutronxSdkPath = p.normalize(
+      p.join(neutronxRoot, 'packages', 'neutronx'),
+    );
 
     File? backup;
     try {
@@ -143,14 +147,14 @@ Examples:
         backup = File(backupFile);
         await backup.writeAsString(pubspecContent);
 
-        // Transform sdk: neutronx to path: $NEUTRONX_ROOT
+        // Transform sdk: neutronx to path: $NEUTRONX_ROOT/packages/neutronx
         final transformed = pubspecContent.replaceAll(
           RegExp(r'sdk:\s*neutronx'),
-          'path: $neutronxRoot',
+          'path: $neutronxSdkPath',
         );
         await File(pubspecFile).writeAsString(transformed);
 
-        print('→ Transformed sdk: neutronx to path: $neutronxRoot');
+        print('→ Transformed sdk: neutronx to path: $neutronxSdkPath');
       }
 
       // Run dart pub command

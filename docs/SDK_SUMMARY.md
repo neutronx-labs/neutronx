@@ -14,7 +14,7 @@ Then projects automatically get:
 ```yaml
 dependencies:
   neutronx:
-    path: /Users/nikhil/NeutronX
+    path: /Users/nikhil/NeutronX/packages/neutronx
 ```
 
 ### 2. **Integrated Pub Support** (For `sdk: neutronx` Syntax)

@@ -9,8 +9,8 @@ echo "Installing NeutronX SDK..."
 echo ""
 
 # Check if running from NeutronX root
-if [ ! -f "packages/neutron_cli/pubspec.yaml" ]; then
-    echo "Error: Must run from NeutronX root directory"
+if [ ! -f "packages/neutron_cli/pubspec.yaml" ] || [ ! -f "packages/neutronx/pubspec.yaml" ]; then
+    echo "Error: Must run from NeutronX root directory (packages/neutronx and packages/neutron_cli must exist)"
     exit 1
 fi
 

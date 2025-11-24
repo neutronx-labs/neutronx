@@ -17,7 +17,7 @@ Into:
 ```yaml
 dependencies:
   neutronx:
-    path: /your/neutronx/path
+    path: /your/neutronx/path/packages/neutronx
 ```
 
 Before running pub, then automatically restores the original after.
@@ -64,7 +64,7 @@ neutron pub deps      # Works with any pub command!
 ```yaml
 dependencies:
   neutronx:
-    path: /Users/yourname/neutronx  # Or auto-generated when NEUTRONX_ROOT is set
+    path: /Users/yourname/neutronx/packages/neutronx  # Or auto-generated when NEUTRONX_ROOT is set
 ```
 
 **Commands:**
@@ -129,7 +129,7 @@ Generated pubspec.yaml:
 ```yaml
 dependencies:
   neutronx:
-    path: /Users/you/neutronx
+    path: /Users/you/neutronx/packages/neutronx
 ```
 
 ### Approach 2: SDK Syntax (Clean syntax)
@@ -163,7 +163,7 @@ The `neutron pub` command:
 
 1. Detects `sdk: neutronx` in pubspec.yaml
 2. Creates a backup (.pubspec.yaml.neutron-backup)
-3. Transforms SDK reference to `path: $NEUTRONX_ROOT`
+3. Transforms SDK reference to `path: $NEUTRONX_ROOT/packages/neutronx`
 4. Runs the dart pub command
 5. Automatically restores original pubspec.yaml
 6. Deletes backup

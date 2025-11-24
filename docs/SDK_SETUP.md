@@ -89,9 +89,9 @@ Create a `dart_tool/package_config.json` entry or let pub resolve it automatical
 
 ## How It Works
 
-1. **Environment Variable**: `NEUTRONX_ROOT` points to your NeutronX installation
+1. **Environment Variable**: `NEUTRONX_ROOT` points to your NeutronX repo root
 2. **SDK Reference**: Projects use `sdk: neutronx` instead of path or git dependencies
-3. **Pub Resolution**: Dart's pub tool reads `NEUTRONX_ROOT` and resolves the SDK package
+3. **Pub Resolution**: The CLI resolves that SDK reference to `path: $NEUTRONX_ROOT/packages/neutronx` when running `neutron pub`
 
 ## Advantages
 
@@ -146,5 +146,5 @@ export PATH="$PATH:$NEUTRONX_ROOT/bin"
    ```yaml
    dependencies:
      neutronx:
-       path: /absolute/path/to/neutronx
+       path: /absolute/path/to/neutronx/packages/neutronx
    ```

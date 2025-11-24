@@ -19,7 +19,7 @@ cd my_app
 ```yaml
 dependencies:
   neutronx:
-    path: /Users/yourname/neutronx  # Auto-generated!
+    path: /Users/yourname/neutronx/packages/neutronx  # Auto-generated!
 ```
 
 **Use standard pub:**
@@ -119,7 +119,7 @@ echo $NEUTRONX_ROOT
 
 | Aspect | Auto-Path | SDK Syntax |
 |--------|-----------|------------|
-| Syntax | `path: /Users/...` | `sdk: neutronx` |
+| Syntax | `path: /Users/.../packages/neutronx` | `sdk: neutronx` |
 | IDE Support | ✅ Full | ⚠️ Shows error |
 | Pub Commands | `dart pub get` | `neutron pub get` |
 | Simplicity | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |

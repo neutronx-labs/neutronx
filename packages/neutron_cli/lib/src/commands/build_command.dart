@@ -67,6 +67,10 @@ class BuildCommand extends Command {
       throw CliException('Entry file not found: $entry');
     }
 
+    // Ensure output directory exists (dart compile won't create it)
+    final outputFile = File(output);
+    await outputFile.parent.create(recursive: true);
+
     print('Building project for production...');
     print('Entry: $entry');
     print('Output: $output');
@@ -106,7 +110,8 @@ class BuildCommand extends Command {
       print('  ./$output');
       print('');
     } else {
-      throw CliException('Build failed with exit code $exitCode', exitCode: exitCode);
+      throw CliException('Build failed with exit code $exitCode',
+          exitCode: exitCode);
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'package:path/path.dart' as p;
 import 'package:recase/recase.dart';
 
 /// Templates for new project generation
@@ -7,16 +8,21 @@ class ProjectTemplate {
 
   ProjectTemplate(this.projectName);
 
-  String get pubspecYaml {
+  String get _neutronxDependency {
     final neutronxRoot = Platform.environment['NEUTRONX_ROOT'];
-    final neutronxDep = neutronxRoot != null && neutronxRoot.isNotEmpty
-        ? '''neutronx:
-    path: $neutronxRoot'''
-        : '''neutronx: ^0.1.0  # Update this when published
+    if (neutronxRoot != null && neutronxRoot.isNotEmpty) {
+      final sdkPath = p.normalize(p.join(neutronxRoot, 'packages', 'neutronx'));
+      return '''neutronx:
+    path: $sdkPath''';
+    }
+
+    return '''neutronx: ^0.1.0  # Update this when published
   # For now, use:
   # neutronx:
-  #   path: /path/to/neutronx''';
+  #   path: /path/to/neutronx/packages/neutronx''';
+  }
 
+  String get pubspecYaml {
     return '''
 name: $projectName
 description: A NeutronX backend application
@@ -26,7 +32,7 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  $neutronxDep
+  $_neutronxDependency
 
 dev_dependencies:
   lints: ^6.0.0
@@ -285,15 +291,6 @@ final user = UserDto(id: '1', name: 'John', email: 'john@example.com');
 ''';
 
   String get backendPubspec {
-    final neutronxRoot = Platform.environment['NEUTRONX_ROOT'];
-    final neutronxDep = neutronxRoot != null && neutronxRoot.isNotEmpty
-        ? '''neutronx:
-    path: $neutronxRoot'''
-        : '''neutronx: ^0.1.0  # Update when published
-  # For now, use:
-  # neutronx:
-  #   path: /path/to/neutronx''';
-
     return '''
 name: backend
 description: ${projectName.pascalCase} backend application
@@ -303,7 +300,7 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  $neutronxDep
+  $_neutronxDependency
   models:
     path: ../../packages/models
 

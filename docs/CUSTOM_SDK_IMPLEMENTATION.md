@@ -62,10 +62,11 @@ with open('pubspec.yaml.backup', 'w') as f:
 
 # Transform sdk: neutronx to path: $NEUTRONX_ROOT
 neutronx_root = os.environ.get('NEUTRONX_ROOT')
+sdk_path = os.path.join(neutronx_root, 'packages', 'neutronx') if neutronx_root else None
 if 'neutronx' in data.get('dependencies', {}):
     dep = data['dependencies']['neutronx']
     if isinstance(dep, dict) and dep.get('sdk') == 'neutronx':
-        data['dependencies']['neutronx'] = {'path': neutronx_root}
+        data['dependencies']['neutronx'] = {'path': sdk_path}
 
 with open('pubspec.yaml', 'w') as f:
     yaml.dump(data, f)
@@ -92,7 +93,7 @@ Dart could add official support for custom SDKs via configuration:
 ```yaml
 custom_sdks:
   neutronx:
-    path: /Users/you/neutronx
+    path: /Users/you/neutronx/packages/neutronx
     version: 0.1.0
 ```
 
@@ -123,7 +124,7 @@ String get pubspecYaml {
     return '''
 dependencies:
   neutronx:
-    path: $neutronxRoot
+    path: $neutronxRoot/packages/neutronx
 ''';
   } else {
     return '''
