@@ -1,14 +1,5 @@
 import 'package:neutronx/neutronx.dart';
 
-/// Internal representation of a route with its pattern and handler
-class _Route {
-  final String method;
-  final _PathPattern pattern;
-  final Handler handler;
-
-  _Route(this.method, this.pattern, this.handler);
-}
-
 /// Internal representation of a mounted sub-router
 class _Mount {
   final String prefix;
@@ -17,56 +8,100 @@ class _Mount {
   _Mount(this.prefix, this.router);
 }
 
-/// Pattern matching for URL paths with support for static and dynamic segments
-class _PathPattern {
-  final String pattern;
-  final List<String> segments;
-  final List<int> paramIndexes;
-  final List<String> paramNames;
+/// Trie node for route matching
+class _RouteNode {
+  final Map<String, _RouteNode> staticChildren = {};
+  _RouteNode? paramChild;
+  String? paramName;
+  final Map<String, Handler> handlers = {};
 
-  _PathPattern(this.pattern)
-      : segments = pattern.split('/').where((s) => s.isNotEmpty).toList(),
-        paramIndexes = [],
-        paramNames = [] {
-    // Identify parameter segments (e.g., :id, :userId)
-    for (var i = 0; i < segments.length; i++) {
-      if (segments[i].startsWith(':')) {
-        paramIndexes.add(i);
-        paramNames.add(segments[i].substring(1)); // Remove the ':' prefix
-      }
-    }
-  }
+  _RouteNode();
 
-  /// Checks if a path matches this pattern and extracts parameters
-  ({bool matches, Map<String, String> params}) match(String path) {
-    final pathSegments = path.split('/').where((s) => s.isNotEmpty).toList();
+  void addRoute(String method, List<String> segments, Handler handler) {
+    var node = this;
 
-    // Must have same number of segments
-    if (pathSegments.length != segments.length) {
-      return (matches: false, params: {});
-    }
-
-    final params = <String, String>{};
-
-    // Check each segment
-    for (var i = 0; i < segments.length; i++) {
-      if (segments[i].startsWith(':')) {
-        // This is a parameter - extract it
-        final paramName = segments[i].substring(1);
-        params[paramName] = pathSegments[i];
+    for (final segment in segments) {
+      if (segment.startsWith(':')) {
+        node.paramChild ??= _RouteNode();
+        node.paramChild!.paramName ??= segment.substring(1);
+        node = node.paramChild!;
       } else {
-        // This is a static segment - must match exactly
-        if (segments[i] != pathSegments[i]) {
-          return (matches: false, params: {});
-        }
+        node = node.staticChildren.putIfAbsent(segment, () => _RouteNode());
       }
     }
 
-    return (matches: true, params: params);
+    if (node.handlers.containsKey(method)) {
+      throw StateError('Route for method $method already exists on ${segments.join('/')}');
+    }
+
+    node.handlers[method] = handler;
   }
 
-  @override
-  String toString() => pattern;
+  _RouteMatch? match(List<String> segments) {
+    return _matchInternal(segments, 0, <String, String>{});
+  }
+
+  _RouteMatch? _matchInternal(
+    List<String> segments,
+    int index,
+    Map<String, String> params,
+  ) {
+    if (index == segments.length) {
+      if (handlers.isEmpty) {
+        return null;
+      }
+      return _RouteMatch(params: params, handlers: handlers);
+    }
+
+    final segment = segments[index];
+
+    // Try static match first
+    final staticChild = staticChildren[segment];
+    if (staticChild != null) {
+      final match = staticChild._matchInternal(segments, index + 1, params);
+      if (match != null) {
+        return match;
+      }
+    }
+
+    // Fallback to parameter match
+    final paramChild = this.paramChild;
+    if (paramChild != null && paramChild.paramName != null) {
+      final newParams = Map<String, String>.from(params)
+        ..[paramChild.paramName!] = segment;
+      final match = paramChild._matchInternal(segments, index + 1, newParams);
+      if (match != null) {
+        return match;
+      }
+    }
+
+    return null;
+  }
+}
+
+class _RouteMatch {
+  final Map<String, String> params;
+  final Map<String, Handler> handlers;
+
+  _RouteMatch({
+    required this.params,
+    required this.handlers,
+  });
+
+  List<String> get allowedMethods {
+    final methods = handlers.keys.toSet();
+    if (methods.contains('*')) {
+      methods
+        ..remove('*')
+        ..addAll(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD']);
+    }
+    if (methods.contains('GET')) {
+      methods.add('HEAD');
+    }
+    methods.add('OPTIONS');
+    methods.remove('*');
+    return methods.toList()..sort();
+  }
 }
 
 /// Router class for defining and matching HTTP routes
@@ -95,7 +130,7 @@ class _PathPattern {
 /// router.mount('/api', apiRouter);
 /// ```
 class Router {
-  final List<_Route> _routes = [];
+  final _RouteNode _root = _RouteNode();
   final List<_Mount> _mounts = [];
 
   /// Registers a GET route
@@ -161,8 +196,13 @@ class Router {
       normalizedPath = '/$normalizedPath';
     }
 
-    final pattern = _PathPattern(normalizedPath);
-    _routes.add(_Route(method, pattern, handler));
+    // Remove trailing slash (except root)
+    if (normalizedPath.length > 1 && normalizedPath.endsWith('/')) {
+      normalizedPath = normalizedPath.substring(0, normalizedPath.length - 1);
+    }
+
+    final segments = normalizedPath.split('/').where((s) => s.isNotEmpty).toList();
+    _root.addRoute(method, segments, handler);
   }
 
   /// Returns a Handler that can be used in the middleware pipeline
@@ -188,20 +228,36 @@ class Router {
       }
 
       // Then try local routes
-      for (final route in _routes) {
-        // Check if method matches (or route accepts any method)
-        if (route.method != '*' && route.method != req.method) {
-          continue;
+      final match = _match(req.path);
+      if (match != null) {
+        final effectiveMethod = req.method.toUpperCase();
+        final handler = _selectHandler(match.handlers, effectiveMethod);
+
+        if (effectiveMethod == 'OPTIONS') {
+          if (handler != null) {
+            final mergedParams = {...req.params, ...match.params};
+            final reqWithParams = req.copyWith(params: mergedParams);
+            return await handler(reqWithParams);
+          }
+          return _optionsResponse(match.allowedMethods);
         }
 
-        // Check if path matches
-        final matchResult = route.pattern.match(req.path);
-        if (matchResult.matches) {
-          // Merge extracted params with existing params
-          final mergedParams = {...req.params, ...matchResult.params};
+        if (handler != null) {
+          final mergedParams = {...req.params, ...match.params};
           final reqWithParams = req.copyWith(params: mergedParams);
-          return await route.handler(reqWithParams);
+          final response = await handler(reqWithParams);
+          if (effectiveMethod == 'HEAD' && match.handlers['HEAD'] == null) {
+            return response.copyWith(body: [], bodyStream: null);
+          }
+          return response;
         }
+
+        // Path matched but method not allowed
+        return Response.json(
+          {'error': 'Method ${req.method} not allowed'},
+          statusCode: 405,
+          headers: {'allow': match.allowedMethods.join(', ')},
+        );
       }
 
       // No route matched - return 404
@@ -212,10 +268,7 @@ class Router {
   /// Returns all registered routes (for debugging/inspection)
   List<String> get routes {
     final result = <String>[];
-
-    for (final route in _routes) {
-      result.add('${route.method} ${route.pattern}');
-    }
+    _collectRoutes(_root, [], result);
 
     for (final mount in _mounts) {
       result.add('MOUNT ${mount.prefix} -> [nested router]');
@@ -224,8 +277,67 @@ class Router {
     return result;
   }
 
+  _RouteMatch? _match(String path) {
+    var normalized = path;
+    if (!normalized.startsWith('/')) {
+      normalized = '/$normalized';
+    }
+    if (normalized.length > 1 && normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+
+    final segments = normalized.split('/').where((s) => s.isNotEmpty).toList();
+    return _root.match(segments);
+  }
+
+  Handler? _selectHandler(Map<String, Handler> handlers, String method) {
+    // Exact match
+    final handler = handlers[method];
+    if (handler != null) return handler;
+
+    // Wildcard
+    if (handlers.containsKey('*')) {
+      return handlers['*'];
+    }
+
+    // HEAD falls back to GET if not explicitly defined
+    if (method == 'HEAD' && handlers.containsKey('GET')) {
+      return handlers['GET'];
+    }
+
+    // OPTIONS is handled separately
+    return null;
+  }
+
+  Response _optionsResponse(List<String> allowedMethods) {
+    return Response.empty(
+      statusCode: 204,
+      headers: {'allow': allowedMethods.join(', ')},
+    );
+  }
+
+  void _collectRoutes(_RouteNode node, List<String> prefix, List<String> output) {
+    node.handlers.forEach((method, _) {
+      if (method == 'HEAD') {
+        // HEAD is implicit for GET; skip listing duplicates
+        if (node.handlers.containsKey('GET')) return;
+      }
+      final routePath = '/${prefix.join('/')}';
+      output.add('$method ${routePath.isEmpty ? '/' : routePath}');
+    });
+
+    node.staticChildren.forEach((segment, child) {
+      _collectRoutes(child, [...prefix, segment], output);
+    });
+
+    if (node.paramChild != null) {
+      final paramName = node.paramChild!.paramName ?? 'param';
+      _collectRoutes(node.paramChild!, [...prefix, ':$paramName'], output);
+    }
+  }
+
   @override
   String toString() {
-    return 'Router(${_routes.length} routes, ${_mounts.length} mounts)';
+    return 'Router(${routes.length} routes, ${_mounts.length} mounts)';
   }
 }

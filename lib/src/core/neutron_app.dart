@@ -39,6 +39,7 @@ class NeutronApp {
   final List<NeutronPlugin> _plugins = [];
   final List<NeutronModule> _modules = [];
   final Map<String, dynamic> _config = {};
+  bool _isShuttingDown = false;
 
   /// Returns the DI container for this application
   NeutronContainer get container => _container;
@@ -132,7 +133,18 @@ class NeutronApp {
     String host = 'localhost',
     int port = 8080,
     bool shared = false,
+    bool enableCompression = false,
+    SecurityContext? securityContext,
+    Duration? idleTimeout,
+    int? maxRequestBodyBytes,
   }) async {
+    if (_server != null) {
+      return _server!;
+    }
+
+    // Basic module validation before boot
+    _validateModules();
+
     // Register modules before plugins
     await _registerModules();
 
@@ -143,13 +155,23 @@ class NeutronApp {
     final handler = _buildHandler();
 
     // Bind the HTTP server
-    _server = await HttpServer.bind(host, port, shared: shared);
+    _server = securityContext != null
+        ? await HttpServer.bindSecure(host, port, securityContext, shared: shared)
+        : await HttpServer.bind(host, port, shared: shared);
+
+    _server!.autoCompress = enableCompression;
+    if (idleTimeout != null) {
+      _server!.idleTimeout = idleTimeout;
+    }
 
     // Handle incoming requests
     _server!.listen((HttpRequest httpRequest) async {
       try {
         // Convert HttpRequest to our Request abstraction
-        final request = await Request.fromHttpRequest(httpRequest);
+        final request = await Request.fromHttpRequest(
+          httpRequest,
+          maxBodyBytes: maxRequestBodyBytes,
+        );
 
         // Process through the handler pipeline
         final response = await handler(request);
@@ -218,6 +240,15 @@ class NeutronApp {
         // Register the module
         await module.register(moduleContext);
 
+        // Ensure all exported types are actually registered
+        for (final exportType in module.exports) {
+          if (!_container.isRegisteredType(exportType)) {
+            throw StateError(
+              'Module ${module.name} exports $exportType but it is not registered in the container',
+            );
+          }
+        }
+
         // Mount the module's router
         _router!.mount('/${module.name}', moduleRouter);
 
@@ -269,8 +300,26 @@ class NeutronApp {
 
   /// Closes the HTTP server
   Future<void> close({bool force = false}) async {
-    await _server?.close(force: force);
-    _server = null;
+    if (_isShuttingDown) return;
+    _isShuttingDown = true;
+    try {
+
+      // Run module teardowns in reverse order
+      for (final module in _modules.reversed) {
+        try {
+          await module.onDestroy();
+        } catch (e) {
+          print('Failed to destroy module ${module.name}: $e');
+        }
+      }
+
+      await _container.dispose();
+
+      await _server?.close(force: force);
+      _server = null;
+    } finally {
+      _isShuttingDown = false;
+    }
   }
 
   /// Returns the bound address and port (if the server is running)
@@ -283,5 +332,42 @@ class NeutronApp {
       return 'NeutronApp(running on ${address?.address}:$port)';
     }
     return 'NeutronApp(not started)';
+  }
+
+  void _validateModules() {
+    final seenNames = <String>{};
+    for (final module in _modules) {
+      if (!seenNames.add(module.name)) {
+        throw StateError('Duplicate module name detected: ${module.name}');
+      }
+    }
+
+    final visiting = <String>{};
+    final visited = <String>{};
+
+    bool hasCycle(NeutronModule module) {
+      if (visiting.contains(module.name)) {
+        return true;
+      }
+      if (visited.contains(module.name)) {
+        return false;
+      }
+
+      visiting.add(module.name);
+      for (final imported in module.imports) {
+        if (hasCycle(imported)) {
+          return true;
+        }
+      }
+      visiting.remove(module.name);
+      visited.add(module.name);
+      return false;
+    }
+
+    for (final module in _modules) {
+      if (hasCycle(module)) {
+        throw StateError('Circular module import detected involving ${module.name}');
+      }
+    }
   }
 }

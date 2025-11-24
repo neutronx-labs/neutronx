@@ -82,6 +82,8 @@ dart pub get
 
 ```bash
 neutron dev
+# add compile-time defines or disable watching:
+# neutron dev -DAPI_URL=https://api.dev --watch=false
 # or
 dart run bin/server.dart
 ```
@@ -90,6 +92,8 @@ dart run bin/server.dart
 
 ```bash
 neutron build
+# pass defines/arch:
+# neutron build -DAPI_URL=https://api.prod --target-arch=arm64
 # or
 dart compile exe bin/server.dart -o build/server
 ```
@@ -118,18 +122,71 @@ $projectName/
 
 ## Documentation
 
-- [NeutronX Documentation](https://github.com/neutronx/neutronx)
+- [NeutronX Documentation](https://github.com/neutronx-labs/neutronx.git)
 ''';
 
-  String get mainLibrary => '''
-/// ${projectName.pascalCase} backend application
-library $projectName;
+  String mainLibrary({String? packageName}) {
+    final pkg = packageName ?? projectName;
+    final rc = ReCase(pkg);
+    return '''
+/// ${rc.pascalCase} backend application
+library $pkg;
 
 export 'src/modules/home_module.dart';
 ''';
+  }
 
-  String get serverMain => '''
+  String get homeModule => '''
 import 'package:neutronx/neutronx.dart';
+
+class HomeModule extends NeutronModule {
+  @override
+  String get name => 'home';
+
+  @override
+  Future<void> register(ModuleContext ctx) async {
+    ctx.router.get('/', (req) async {
+      return Response.json({
+        'module': 'home',
+        'message': 'Hello from HomeModule',
+      });
+    });
+  }
+}
+''';
+
+  String get healthTest => '''
+import 'dart:convert';
+import 'package:neutronx/neutronx.dart';
+import 'package:test/test.dart';
+
+void main() {
+  test('health endpoint responds with ok', () async {
+    final router = Router();
+    router.get('/health', (req) async {
+      return Response.json({'status': 'ok'});
+    });
+
+    final response = await router.handler(Request.test(
+      method: 'GET',
+      uri: Uri.parse('http://localhost/health'),
+      path: '/health',
+    ));
+
+    expect(response.statusCode, equals(200));
+    final body = jsonDecode(utf8.decode(response.body));
+    expect(body['status'], equals('ok'));
+  });
+}
+''';
+
+  String serverMain({String? packageName, String? displayName}) {
+    final pkg = packageName ?? projectName;
+    final name = displayName ?? ReCase(projectName).pascalCase;
+    return '''
+import 'dart:io';
+import 'package:neutronx/neutronx.dart';
+import 'package:$pkg/src/modules/home_module.dart';
 
 void main() async {
   final app = NeutronApp();
@@ -157,16 +214,28 @@ void main() async {
 
   // Add middleware
   app.useMiddleware([
+    requestIdMiddleware(),
     loggingMiddleware(),
     corsMiddleware(),
+    securityHeadersMiddleware(),
+    metricsMiddleware(onEvent: (event) {
+      stdout.writeln(
+        '[metrics] \${event.method} \${event.path} '
+        '-> \${event.statusCode} (\${event.duration.inMilliseconds}ms)',
+      );
+    }),
     errorHandlerMiddleware(),
   ]);
+
+  // Feature modules
+  app.registerModule(HomeModule());
 
   // Start server
   final server = await app.listen(port: 3000);
   print('🚀 Server running on http://localhost:\${server.port}');
 }
 ''';
+  }
 
   String get monorepoReadme => '''
 # $projectName
@@ -192,6 +261,7 @@ $projectName/
 cd apps/backend
 dart pub get
 neutron dev
+# e.g. neutron dev -DAPI_URL=https://api.dev
 ```
 
 ### Mobile
@@ -324,5 +394,35 @@ dev_dependencies:
 library models;
 
 export 'src/user_dto.dart';
+''';
+
+  String get userDto => '''
+class UserDto {
+  final String id;
+  final String name;
+  final String email;
+
+  UserDto({
+    required this.id,
+    required this.name,
+    required this.email,
+  });
+
+  factory UserDto.fromJson(Map<String, dynamic> json) {
+    return UserDto(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      email: json['email'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+    };
+  }
+}
 ''';
 }

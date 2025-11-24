@@ -39,6 +39,10 @@ class Request {
   /// Shared context for middleware to store data (e.g., authenticated user)
   final Map<String, dynamic> context;
 
+  /// Optional maximum body size in bytes. If set, reading beyond this
+  /// limit will throw an [HttpException].
+  final int? _maxBodyBytes;
+
   /// Cached body bytes to avoid multiple reads
   List<int>? _cachedBodyBytes;
 
@@ -55,8 +59,10 @@ class Request {
     required this.headers,
     required this.cookies,
     Map<String, dynamic>? context,
+    int? maxBodyBytes,
   })  : _httpRequest = httpRequest,
-        context = context ?? {};
+        context = context ?? {},
+        _maxBodyBytes = maxBodyBytes;
 
   /// Creates a test Request without needing an HttpRequest.
   /// This is useful for unit testing handlers and middleware.
@@ -70,14 +76,17 @@ class Request {
     this.cookies = const [],
     Map<String, dynamic>? context,
     List<int>? bodyBytes,
+    int? maxBodyBytes,
   })  : _httpRequest = _MockHttpRequest._(),
         context = context ?? {},
-        _cachedBodyBytes = bodyBytes;
+        _cachedBodyBytes = bodyBytes,
+        _maxBodyBytes = maxBodyBytes;
 
   /// Creates a Request from a dart:io HttpRequest
   static Future<Request> fromHttpRequest(
     HttpRequest httpRequest, {
     Map<String, String>? params,
+    int? maxBodyBytes,
   }) async {
     final uri = httpRequest.uri;
     final headers = <String, String>{};
@@ -100,6 +109,7 @@ class Request {
       query: query,
       headers: headers,
       cookies: httpRequest.cookies,
+      maxBodyBytes: maxBodyBytes,
     );
   }
 
@@ -110,7 +120,16 @@ class Request {
   Future<List<int>> bodyBytes() async {
     _cachedBodyBytes ??= await _httpRequest.fold<List<int>>(
       [],
-      (previous, element) => previous..addAll(element),
+      (previous, element) {
+        final nextLength = previous.length + element.length;
+        if (_maxBodyBytes != null && nextLength > _maxBodyBytes!) {
+          throw HttpException(
+            'Request body exceeded maximum size of $_maxBodyBytes bytes',
+          );
+        }
+        previous.addAll(element);
+        return previous;
+      },
     );
     return _cachedBodyBytes!;
   }
@@ -176,6 +195,7 @@ class Request {
       headers: headers,
       cookies: cookies,
       context: context ?? this.context,
+      maxBodyBytes: _maxBodyBytes,
     );
   }
 
@@ -193,6 +213,18 @@ class Request {
 
   /// Checks if the request is multipart form data
   bool get isMultipart => contentType?.contains('multipart/form-data') ?? false;
+
+  /// Typed context getter to reduce repeated casts
+  T? getContext<T>(String key) {
+    return context[key] as T?;
+  }
+
+  /// Returns a new Request with an additional context entry
+  Request withContext(String key, dynamic value) {
+    return copyWith(
+      context: {...context, key: value},
+    );
+  }
 
   @override
   String toString() {

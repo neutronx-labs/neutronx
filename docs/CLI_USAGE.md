@@ -17,7 +17,7 @@ The CLI generates projects with a git dependency:
 dependencies:
   neutronx:
     git:
-      url: https://github.com/neutronx/neutronx.git
+  url: https://github.com/neutronx-labs/neutronx.git
       ref: main
 ```
 

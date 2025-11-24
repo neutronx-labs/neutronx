@@ -58,17 +58,24 @@ class NeutronContainer {
   final Map<Type, _Registration> _registrations = {};
   final Map<Type, dynamic> _singletonInstances = {};
   final Set<Type> _resolutionStack = {};
+  final Map<Type, void Function(dynamic)> _disposers = {};
+  final NeutronContainer? _parent;
+
+  NeutronContainer({NeutronContainer? parent}) : _parent = parent;
 
   /// Registers a pre-built singleton instance
   ///
   /// The same instance will be returned on every [get<T>()] call.
-  void registerSingleton<T extends Object>(T instance) {
+  void registerSingleton<T extends Object>(T instance, {void Function(T)? dispose}) {
     if (_registrations.containsKey(T)) {
       throw StateError('Type $T is already registered');
     }
 
     _registrations[T] = _Registration<T>.singleton(instance);
     _singletonInstances[T] = instance;
+    if (dispose != null) {
+      _disposers[T] = (obj) => dispose(obj as T);
+    }
   }
 
   /// Registers a lazy singleton factory
@@ -76,13 +83,17 @@ class NeutronContainer {
   /// The factory will be called once on the first [get<T>()] call,
   /// and the result will be cached for subsequent calls.
   void registerLazySingleton<T extends Object>(
-    T Function(NeutronContainer) factory,
-  ) {
+    T Function(NeutronContainer) factory, {
+    void Function(T)? dispose,
+  }) {
     if (_registrations.containsKey(T)) {
       throw StateError('Type $T is already registered');
     }
 
     _registrations[T] = _Registration<T>.lazySingleton(factory);
+    if (dispose != null) {
+      _disposers[T] = (obj) => dispose(obj as T);
+    }
   }
 
   /// Registers a factory function
@@ -107,6 +118,7 @@ class NeutronContainer {
   /// Note: This only works with singletons. For factories and lazy singletons,
   /// unregister the type first and then register a new one.
   void overrideSingleton<T extends Object>(T instance) {
+    _disposeIfPresent(T);
     _registrations[T] = _Registration<T>.singleton(instance);
     _singletonInstances[T] = instance;
   }
@@ -117,6 +129,10 @@ class NeutronContainer {
   /// Throws [CircularDependencyError] if a circular dependency is detected.
   T get<T extends Object>() {
     if (!_registrations.containsKey(T)) {
+      if (_parent != null) {
+        return _parent!.get<T>();
+      }
+
       throw StateError(
         'Type $T is not registered in the container. '
         'Did you forget to call register?',
@@ -171,25 +187,61 @@ class NeutronContainer {
     return _registrations.containsKey(T);
   }
 
+  /// Checks if a raw type is registered (useful when you only have a Type instance)
+  bool isRegisteredType(Type type) {
+    return _registrations.containsKey(type);
+  }
+
   /// Unregisters a type from the container
   ///
   /// This is useful for testing or dynamic reconfiguration.
   void unregister<T extends Object>() {
+    _disposeIfPresent(T);
     _registrations.remove(T);
     _singletonInstances.remove(T);
+    _disposers.remove(T);
   }
 
   /// Clears all registrations and cached instances
   ///
   /// This is primarily useful for testing.
   void clear() {
+    _disposeAll();
     _registrations.clear();
     _singletonInstances.clear();
     _resolutionStack.clear();
+    _disposers.clear();
   }
 
   /// Returns the number of registered types
   int get registrationCount => _registrations.length;
+
+  /// Creates a child container that will fall back to this container
+  /// for resolution. Useful for request-scoped dependencies.
+  NeutronContainer createChild() => NeutronContainer(parent: this);
+
+  /// Dispose singletons that have registered disposers.
+  Future<void> dispose() async {
+    _disposeAll();
+  }
+
+  void _disposeAll() {
+    _singletonInstances.forEach((type, instance) {
+      _disposeIfPresent(type, instance: instance);
+    });
+  }
+
+  void _disposeIfPresent(Type type, {dynamic instance}) {
+    final disposer = _disposers[type];
+    final value = instance ?? _singletonInstances[type];
+    if (disposer != null && value != null) {
+      try {
+        disposer(value);
+      } catch (_) {
+        // Swallow disposer errors to avoid masking shutdown
+      }
+    }
+  }
 
   @override
   String toString() {

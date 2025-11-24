@@ -32,6 +32,15 @@ class BuildCommand extends Command {
         abbr: 'o',
         defaultsTo: 'build/server',
         help: 'Output executable path',
+      )
+      ..addMultiOption(
+        'define',
+        abbr: 'D',
+        help: 'Compile-time dart defines (key=value)',
+      )
+      ..addOption(
+        'target-arch',
+        help: 'Target architecture (e.g., x64, arm64)',
       );
   }
 
@@ -49,6 +58,8 @@ class BuildCommand extends Command {
 
     final entry = results['entry'] as String;
     final output = results['output'] as String;
+    final defines = (results['define'] as List<String>?) ?? [];
+    final targetArch = results['target-arch'] as String?;
 
     // Check if entry file exists
     final entryFile = File(entry);
@@ -70,6 +81,9 @@ class BuildCommand extends Command {
         entry,
         '-o',
         output,
+        if (targetArch != null) '-a',
+        if (targetArch != null) targetArch,
+        ...defines.map((d) => '-D$d'),
       ],
     );
 

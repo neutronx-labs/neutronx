@@ -1,4 +1,5 @@
 import 'package:neutronx/neutronx.dart';
+import 'dart:math';
 
 /// A simple logging middleware that logs request method and path
 Middleware loggingMiddleware({
@@ -160,6 +161,91 @@ Middleware rateLimitMiddleware({
       requestCounts.putIfAbsent(clientId, () => []).add(now);
 
       return await next(req);
+    };
+  };
+}
+
+/// Adds an id to every request and propagates it via headers and context.
+Middleware requestIdMiddleware({
+  String headerName = 'x-request-id',
+  String contextKey = 'requestId',
+  String Function()? generator,
+}) {
+  final rand = Random();
+  String _defaultGen() =>
+      '${DateTime.now().microsecondsSinceEpoch}-${rand.nextInt(1 << 32)}';
+  final gen = generator ?? _defaultGen;
+
+  return (Handler next) {
+    return (Request req) async {
+      final existing = req.headers[headerName.toLowerCase()];
+      final requestId = existing ?? gen();
+
+      final newReq = req.withContext(contextKey, requestId);
+      final response = await next(newReq);
+
+      return response.withHeaders({headerName: requestId});
+    };
+  };
+}
+
+/// Adds common security headers (baseline hardening).
+Middleware securityHeadersMiddleware({
+  String frameOptions = 'DENY',
+  String xssProtection = '1; mode=block',
+  String contentTypeOptions = 'nosniff',
+  String referrerPolicy = 'no-referrer',
+  String permissionsPolicy = 'geolocation=(), microphone=(), camera=()',
+}) {
+  return (Handler next) {
+    return (Request req) async {
+      final res = await next(req);
+      return res.withHeaders({
+        'x-frame-options': frameOptions,
+        'x-xss-protection': xssProtection,
+        'x-content-type-options': contentTypeOptions,
+        'referrer-policy': referrerPolicy,
+        'permissions-policy': permissionsPolicy,
+      });
+    };
+  };
+}
+
+/// Captures metrics for each request.
+class MetricsEvent {
+  final String method;
+  final String path;
+  final int statusCode;
+  final Duration duration;
+  final int? responseBytes;
+
+  MetricsEvent({
+    required this.method,
+    required this.path,
+    required this.statusCode,
+    required this.duration,
+    this.responseBytes,
+  });
+}
+
+Middleware metricsMiddleware({
+  required void Function(MetricsEvent event) onEvent,
+}) {
+  return (Handler next) {
+    return (Request req) async {
+      final sw = Stopwatch()..start();
+      final res = await next(req);
+      sw.stop();
+
+      final event = MetricsEvent(
+        method: req.method,
+        path: req.path,
+        statusCode: res.statusCode,
+        duration: sw.elapsed,
+        responseBytes: res.bodyStream == null ? res.body.length : null,
+      );
+      onEvent(event);
+      return res;
     };
   };
 }

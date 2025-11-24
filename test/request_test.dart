@@ -147,6 +147,30 @@ void main() {
       expect(original.context.containsKey('key2'), isFalse);
     });
 
+    test('getContext() returns typed context entry', () {
+      final request = Request.test(
+        method: 'GET',
+        uri: Uri.parse('http://localhost/test'),
+        path: '/test',
+        context: {'user': 'abc'},
+      );
+
+      final user = request.getContext<String>('user');
+      expect(user, equals('abc'));
+    });
+
+    test('withContext() returns new request with added context entry', () {
+      final request = Request.test(
+        method: 'GET',
+        uri: Uri.parse('http://localhost/test'),
+        path: '/test',
+      );
+
+      final updated = request.withContext('trace', 't-1');
+      expect(updated.context['trace'], equals('t-1'));
+      expect(request.context.containsKey('trace'), isFalse);
+    });
+
     test('contentType getter returns content-type header', () {
       final request = Request.test(
         method: 'POST',

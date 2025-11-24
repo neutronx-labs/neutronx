@@ -1,7 +1,7 @@
 name: neutronx
 description: A Flutter-first Dart backend framework with shared DTO support and monorepo-native design
 version: 0.1.0
-homepage: https://github.com/neutronx/neutronx
+homepage: https://github.com/neutronx-labs/neutronx.git
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

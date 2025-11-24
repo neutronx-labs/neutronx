@@ -1,5 +1,5 @@
 name: neutronx_monorepo_example
-repository: https://github.com/neutronx/neutronx
+repository: https://github.com/neutronx-labs/neutronx.git
 
 packages:
   - apps/**

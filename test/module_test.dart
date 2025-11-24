@@ -46,6 +46,9 @@ class UsersModule extends NeutronModule {
   @override
   Future<void> register(ModuleContext context) async {
     final router = context.router;
+    context.container.registerLazySingleton<TestService>(
+      (c) => TestService('users-service'),
+    );
     router.get('/', (req) async => Response.json({'users': []}));
   }
 

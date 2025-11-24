@@ -73,13 +73,13 @@ void main() {
       expect(response.statusCode, equals(404));
     });
 
-    test('routes return 404 for non-matching methods', () async {
+    test('routes return 405 for non-matching methods', () async {
       router.get('/test', (req) async => Response.text('OK'));
 
       final mockReq = _MockRequest(method: 'POST', path: '/test');
       final response = await router.handler(mockReq);
 
-      expect(response.statusCode, equals(404));
+      expect(response.statusCode, equals(405));
     });
 
     test('extracts path parameters from :param syntax', () async {
@@ -196,6 +196,27 @@ void main() {
       final response = await router.handler(mockReq);
 
       expect(response.statusCode, equals(200));
+    });
+
+    test('responds to OPTIONS with Allow header', () async {
+      router.get('/opts', (req) async => Response.text('OK'));
+
+      final mockReq = _MockRequest(method: 'OPTIONS', path: '/opts');
+      final response = await router.handler(mockReq);
+
+      expect(response.statusCode, equals(204));
+      expect(response.headers['allow'], contains('GET'));
+      expect(response.headers['allow'], contains('HEAD'));
+    });
+
+    test('HEAD falls back to GET handler without body', () async {
+      router.get('/head', (req) async => Response.text('BODY'));
+
+      final mockReq = _MockRequest(method: 'HEAD', path: '/head');
+      final response = await router.handler(mockReq);
+
+      expect(response.statusCode, equals(200));
+      expect(response.body.isEmpty, isTrue);
     });
   });
 }

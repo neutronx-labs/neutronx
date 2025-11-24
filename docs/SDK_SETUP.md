@@ -17,7 +17,7 @@ dependencies:
 ### 1. Clone NeutronX
 
 ```bash
-git clone https://github.com/neutronx/neutronx.git
+git clone https://github.com/neutronx-labs/neutronx.git
 # Or your preferred location
 cd neutronx
 ```

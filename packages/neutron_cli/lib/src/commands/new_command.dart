@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
+import 'package:recase/recase.dart';
 import 'command.dart';
 import '../cli_exception.dart';
 import '../templates/project_template.dart';
@@ -118,8 +119,10 @@ class NewCommand extends Command {
     await _writeFile('$projectName/analysis_options.yaml', template.analysisOptions);
     await _writeFile('$projectName/.gitignore', template.gitignore);
     await _writeFile('$projectName/README.md', template.readme);
-    await _writeFile('$projectName/lib/${projectName}.dart', template.mainLibrary);
-    await _writeFile('$projectName/bin/server.dart', template.serverMain);
+    await _writeFile('$projectName/lib/${projectName}.dart', template.mainLibrary());
+    await _writeFile('$projectName/lib/src/modules/home_module.dart', template.homeModule);
+    await _writeFile('$projectName/bin/server.dart', template.serverMain());
+    await _writeFile('$projectName/test/health_test.dart', template.healthTest);
 
     print('✓ Created standard project structure');
   }
@@ -145,8 +148,19 @@ class NewCommand extends Command {
     // Backend app
     await _writeFile('$projectName/apps/backend/pubspec.yaml', template.backendPubspec);
     await _writeFile('$projectName/apps/backend/analysis_options.yaml', template.analysisOptions);
-    await _writeFile('$projectName/apps/backend/bin/server.dart', template.serverMain);
-    await _writeFile('$projectName/apps/backend/lib/backend.dart', template.mainLibrary);
+    await _writeFile(
+      '$projectName/apps/backend/bin/server.dart',
+      template.serverMain(packageName: 'backend', displayName: ReCase(projectName).pascalCase),
+    );
+    await _writeFile(
+      '$projectName/apps/backend/lib/backend.dart',
+      template.mainLibrary(packageName: 'backend'),
+    );
+    await _writeFile(
+      '$projectName/apps/backend/lib/src/modules/home_module.dart',
+      template.homeModule,
+    );
+    await _writeFile('$projectName/apps/backend/test/health_test.dart', template.healthTest);
 
     // Mobile app placeholder
     await _writeFile('$projectName/apps/mobile/pubspec.yaml', template.mobilePubspec);
@@ -155,6 +169,7 @@ class NewCommand extends Command {
     // Shared models package
     await _writeFile('$projectName/packages/models/pubspec.yaml', template.modelsPubspec);
     await _writeFile('$projectName/packages/models/lib/models.dart', template.modelsLibrary);
+    await _writeFile('$projectName/packages/models/lib/src/user_dto.dart', template.userDto);
 
     print('✓ Created monorepo structure');
   }

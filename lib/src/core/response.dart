@@ -18,10 +18,14 @@ class Response {
   /// Response body as bytes
   final List<int> body;
 
+  /// Optional response body as a stream for large/streaming payloads
+  final Stream<List<int>>? bodyStream;
+
   const Response._({
     required this.statusCode,
     required this.headers,
     required this.body,
+    this.bodyStream,
   });
 
   /// Creates a plain text response
@@ -39,6 +43,7 @@ class Response {
       statusCode: statusCode,
       headers: mergedHeaders,
       body: utf8.encode(content),
+      bodyStream: null,
     );
   }
 
@@ -69,6 +74,7 @@ class Response {
       statusCode: statusCode,
       headers: mergedHeaders,
       body: utf8.encode(jsonString),
+      bodyStream: null,
     );
   }
 
@@ -88,6 +94,27 @@ class Response {
       statusCode: statusCode,
       headers: mergedHeaders,
       body: bytes,
+      bodyStream: null,
+    );
+  }
+
+  /// Creates a streaming response without buffering the full body in memory
+  factory Response.stream(
+    Stream<List<int>> stream, {
+    int statusCode = 200,
+    String contentType = 'application/octet-stream',
+    Map<String, String>? headers,
+  }) {
+    final mergedHeaders = {
+      'content-type': contentType,
+      ...?headers,
+    };
+
+    return Response._(
+      statusCode: statusCode,
+      headers: mergedHeaders,
+      body: const [],
+      bodyStream: stream,
     );
   }
 
@@ -106,6 +133,7 @@ class Response {
       statusCode: statusCode,
       headers: mergedHeaders,
       body: [],
+      bodyStream: null,
     );
   }
 
@@ -118,6 +146,7 @@ class Response {
       statusCode: statusCode,
       headers: headers ?? {},
       body: [],
+      bodyStream: null,
     );
   }
 
@@ -136,6 +165,7 @@ class Response {
       statusCode: statusCode,
       headers: mergedHeaders,
       body: utf8.encode(content),
+      bodyStream: null,
     );
   }
 
@@ -182,11 +212,13 @@ class Response {
     int? statusCode,
     Map<String, String>? headers,
     List<int>? body,
+    Stream<List<int>>? bodyStream,
   }) {
     return Response._(
       statusCode: statusCode ?? this.statusCode,
       headers: headers ?? this.headers,
       body: body ?? this.body,
+      bodyStream: bodyStream ?? this.bodyStream,
     );
   }
 
@@ -207,7 +239,9 @@ class Response {
     });
 
     // Write body
-    if (body.isNotEmpty) {
+    if (bodyStream != null) {
+      await httpResponse.addStream(bodyStream!);
+    } else if (body.isNotEmpty) {
       httpResponse.add(body);
     }
 
@@ -216,6 +250,8 @@ class Response {
 
   @override
   String toString() {
-    return 'Response($statusCode, ${headers['content-type']}, ${body.length} bytes)';
+    final bodyDescription =
+        bodyStream != null ? 'stream' : '${body.length} bytes';
+    return 'Response($statusCode, ${headers['content-type']}, $bodyDescription)';
   }
 }

@@ -214,6 +214,27 @@ void main() {
       expect(container.registrationCount, equals(1));
     });
 
+    test('createChild() resolves from parent when missing locally', () {
+      container.registerSingleton<ServiceA>(ServiceA());
+      final child = container.createChild();
+
+      final resolved = child.get<ServiceA>();
+      expect(resolved, same(container.get<ServiceA>()));
+    });
+
+    test('dispose() invokes registered disposers', () async {
+      var disposed = false;
+      container.registerSingleton<ServiceA>(
+        ServiceA(),
+        dispose: (_) {
+          disposed = true;
+        },
+      );
+
+      await container.dispose();
+      expect(disposed, isTrue);
+    });
+
     test('toString() returns readable representation', () {
       container.registerSingleton<ServiceA>(ServiceA());
       final str = container.toString();

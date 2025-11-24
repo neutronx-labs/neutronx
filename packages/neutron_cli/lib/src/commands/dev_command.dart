@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:args/args.dart';
 import 'command.dart';
@@ -32,11 +33,21 @@ class DevCommand extends Command {
         defaultsTo: 'localhost',
         help: 'Host to bind the server to',
       )
+      ..addMultiOption(
+        'define',
+        abbr: 'D',
+        help: 'Compile-time dart defines (key=value)',
+      )
       ..addOption(
         'entry',
         abbr: 'e',
         defaultsTo: 'bin/server.dart',
         help: 'Entry point file',
+      )
+      ..addFlag(
+        'watch',
+        defaultsTo: true,
+        help: 'Restart the server when files change',
       );
   }
 
@@ -55,6 +66,8 @@ class DevCommand extends Command {
     final port = results['port'] as String;
     final host = results['host'] as String;
     final entry = results['entry'] as String;
+    final defines = (results['define'] as List<String>?) ?? [];
+    final watch = results['watch'] as bool;
 
     // Check if entry file exists
     final entryFile = File(entry);
@@ -67,36 +80,66 @@ class DevCommand extends Command {
     print('Host: $host');
     print('Port: $port');
     print('');
-    print('Watching for file changes...');
+    if (watch) {
+      print('Watching for file changes...');
+    }
     print('Press Ctrl+C to stop');
     print('');
 
-    // Run with dart run and enable VM service for hot reload
-    final process = await Process.start(
-      'dart',
-      [
+    Future<Process> start() async {
+      final args = [
         'run',
         '--enable-vm-service',
         '--observe',
+        ...defines.map((d) => '-D$d'),
         entry,
-      ],
-      environment: {
-        'HOST': host,
-        'PORT': port,
-      },
-    );
+      ];
+      final process = await Process.start(
+        'dart',
+        args,
+        environment: {
+          'HOST': host,
+          'PORT': port,
+        },
+        mode: ProcessStartMode.inheritStdio,
+      );
+      return process;
+    }
 
-    // Forward output
-    process.stdout.listen((data) {
-      stdout.add(data);
-    });
+    Process current = await start();
 
-    process.stderr.listen((data) {
-      stderr.add(data);
-    });
+    final subs = <StreamSubscription<FileSystemEvent>>[];
+    if (watch) {
+      final dirsToWatch = ['lib', 'bin'];
+      final watchers = dirsToWatch
+          .map((d) => Directory(d))
+          .where((d) => d.existsSync())
+          .map((d) => d.watch(recursive: true));
 
-    // Wait for process to exit
-    final exitCode = await process.exitCode;
+      DateTime lastChange = DateTime.now();
+      void handleEvent(FileSystemEvent event) async {
+        final now = DateTime.now();
+        // Debounce rapid events
+        if (now.difference(lastChange) < const Duration(milliseconds: 200)) {
+          return;
+        }
+        lastChange = now;
+
+        print('↻ Change detected in ${event.path}. Restarting...');
+        current.kill(ProcessSignal.sigterm);
+        current = await start();
+      }
+
+      for (final watcher in watchers) {
+        subs.add(watcher.listen(handleEvent));
+      }
+    }
+
+    // Wait for current to exit (Ctrl+C)
+    final exitCode = await current.exitCode;
+    for (final sub in subs) {
+      await sub.cancel();
+    }
     exit(exitCode);
   }
 }

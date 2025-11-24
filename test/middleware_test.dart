@@ -184,6 +184,42 @@ void main() {
 
       expect(response.statusCode, equals(400));
     });
+
+    test('requestIdMiddleware adds header and context', () async {
+      final middleware = requestIdMiddleware(generator: () => 'req-1');
+      final handler = middleware((req) async {
+        expect(req.getContext<String>('requestId'), equals('req-1'));
+        return Response.text('OK');
+      });
+
+      final response = await handler(_MockRequest());
+
+      expect(response.headers['x-request-id'], equals('req-1'));
+    });
+
+    test('securityHeadersMiddleware adds default security headers', () async {
+      final middleware = securityHeadersMiddleware();
+      final handler = middleware((req) async => Response.text('OK'));
+
+      final response = await handler(_MockRequest());
+
+      expect(response.headers['x-frame-options'], equals('DENY'));
+      expect(response.headers['x-content-type-options'], equals('nosniff'));
+    });
+
+    test('metricsMiddleware emits metrics event', () async {
+      MetricsEvent? captured;
+      final middleware = metricsMiddleware(onEvent: (event) {
+        captured = event;
+      });
+      final handler = middleware((req) async => Response.text('OK'));
+
+      await handler(_MockRequest());
+
+      expect(captured, isNotNull);
+      expect(captured!.method, equals('GET'));
+      expect(captured!.statusCode, equals(200));
+    });
   });
 }
 

@@ -150,5 +150,18 @@ void main() {
 
       expect(updated.headers['content-type'], equals('text/custom'));
     });
+
+    test('stream() creates streaming response without buffering', () {
+      final stream = Stream<List<int>>.fromIterable([
+        utf8.encode('chunk1'),
+        utf8.encode('chunk2'),
+      ]);
+
+      final response = Response.stream(stream, contentType: 'text/plain');
+
+      expect(response.bodyStream, isNotNull);
+      expect(response.body, isEmpty);
+      expect(response.headers['content-type'], equals('text/plain'));
+    });
   });
 }

@@ -94,7 +94,7 @@ neutron <command> --help
 
 ```bash
 # 1. Clone NeutronX
-git clone https://github.com/neutronx/neutronx.git
+git clone https://github.com/neutronx-labs/neutronx.git
 cd neutronx
 
 # 2. Run installer

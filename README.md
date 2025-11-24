@@ -27,7 +27,7 @@ NeutronX is designed to work seamlessly with Flutter applications, enabling:
 
 ```bash
 # Clone the repository
-git clone https://github.com/neutronx/neutronx.git
+git clone https://github.com/neutronx-labs/neutronx.git
 cd neutronx
 
 # Install CLI and setup SDK
