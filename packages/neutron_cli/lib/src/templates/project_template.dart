@@ -29,8 +29,8 @@ dependencies:
   $neutronxDep
 
 dev_dependencies:
-  lints: ^3.0.0
-  test: ^1.24.0
+  lints: ^6.0.0
+  test: ^1.28.0
 ''';
   }
 
@@ -308,8 +308,8 @@ dependencies:
     path: ../../packages/models
 
 dev_dependencies:
-  lints: ^3.0.0
-  test: ^1.24.0
+  lints: ^6.0.0
+  test: ^1.28.0
 ''';
   }
 
@@ -385,8 +385,8 @@ environment:
 dependencies: {}
 
 dev_dependencies:
-  lints: ^3.0.0
-  test: ^1.24.0
+  lints: ^6.0.0
+  test: ^1.28.0
 ''';
 
   String get modelsLibrary => '''
