@@ -82,7 +82,7 @@ class NewCommand extends Command {
     print('  neutron pub get');
     print('  neutron dev');
     print('');
-    
+
     // Check if NEUTRONX_ROOT is set
     final neutronxRoot = Platform.environment['NEUTRONX_ROOT'];
     if (neutronxRoot == null || neutronxRoot.isEmpty) {

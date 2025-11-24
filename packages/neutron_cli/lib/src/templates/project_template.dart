@@ -16,7 +16,7 @@ class ProjectTemplate {
   # For now, use:
   # neutronx:
   #   path: /path/to/neutronx''';
-    
+
     return '''
 name: $projectName
 description: A NeutronX backend application
@@ -223,7 +223,7 @@ final user = UserDto(id: '1', name: 'John', email: 'john@example.com');
   # For now, use:
   # neutronx:
   #   path: /path/to/neutronx''';
-    
+
     return '''
 name: backend
 description: ${projectName.pascalCase} backend application

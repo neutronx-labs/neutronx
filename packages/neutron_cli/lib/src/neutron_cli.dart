@@ -60,13 +60,13 @@ class NeutronCli {
       }
 
       final commandName = results.rest[0];
-      
+
       // Handle 'pub' as a special pass-through command
       if (commandName == 'pub') {
         await _runPubCommand(results.rest.sublist(1));
         return;
       }
-      
+
       final command = _commands[commandName];
 
       if (command == null) {
@@ -117,7 +117,7 @@ Examples:
   Future<void> _runPubCommand(List<String> args) async {
     const pubspecFile = 'pubspec.yaml';
     const backupFile = '.pubspec.yaml.neutron-backup';
-    
+
     if (!File(pubspecFile).existsSync()) {
       print('Error: No pubspec.yaml found in current directory');
       throw CliException('pubspec.yaml not found', exitCode: 1);
@@ -136,20 +136,20 @@ Examples:
     try {
       // Read original pubspec
       final pubspecContent = await File(pubspecFile).readAsString();
-      
+
       // Check if it contains "sdk: neutronx"
       if (pubspecContent.contains('sdk: neutronx')) {
         // Create backup
         backup = File(backupFile);
         await backup.writeAsString(pubspecContent);
-        
+
         // Transform sdk: neutronx to path: $NEUTRONX_ROOT
         final transformed = pubspecContent.replaceAll(
           RegExp(r'sdk:\s*neutronx'),
           'path: $neutronxRoot',
         );
         await File(pubspecFile).writeAsString(transformed);
-        
+
         print('→ Transformed sdk: neutronx to path: $neutronxRoot');
       }
 
