@@ -25,6 +25,7 @@ import 'package:neutronx/neutronx.dart';
 import 'controllers/${name}_controller.dart';
 import 'services/${name}_service.dart';
 import 'repositories/${name}_repository.dart';
+// [CONTROLLER_IMPORTS]
 
 /// ${rc.titleCase} module
 class ${rc.pascalCase}Module extends NeutronModule {
@@ -45,6 +46,7 @@ class ${rc.pascalCase}Module extends NeutronModule {
     // Register routes
     final service = context.container.get<${rc.pascalCase}Service>();
     ${rc.pascalCase}Controller(service).register(context.router);
+    // [CONTROLLER_REGISTRATIONS]
   }
 
   @override

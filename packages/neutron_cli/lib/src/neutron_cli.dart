@@ -26,7 +26,7 @@ class NeutronCli {
   }
 
   void _setupParser() {
-    _parser = ArgParser()
+    _parser = ArgParser(allowTrailingOptions: true)
       ..addFlag(
         'help',
         abbr: 'h',
@@ -43,7 +43,17 @@ class NeutronCli {
 
   Future<void> run(List<String> arguments) async {
     try {
-      final results = _parser.parse(arguments);
+      // Parse only global flags before the first positional (command) token
+      final firstPositionalIndex =
+          arguments.indexWhere((arg) => !arg.startsWith('-'));
+      final globalArgs = firstPositionalIndex == -1
+          ? arguments
+          : arguments.sublist(0, firstPositionalIndex);
+      final commandAndArgs = firstPositionalIndex == -1
+          ? <String>[]
+          : arguments.sublist(firstPositionalIndex);
+
+      final results = _parser.parse(globalArgs);
 
       if (results['help'] as bool) {
         _printUsage();
@@ -56,15 +66,21 @@ class NeutronCli {
       }
 
       if (results.rest.isEmpty) {
-        _printUsage();
-        throw CliException('No command specified', exitCode: 1);
+        if (commandAndArgs.isEmpty) {
+          _printUsage();
+          throw CliException('No command specified', exitCode: 1);
+        }
       }
 
-      final commandName = results.rest[0];
+      final commandName =
+          results.rest.isNotEmpty ? results.rest[0] : commandAndArgs[0];
 
       // Handle 'pub' as a special pass-through command
       if (commandName == 'pub') {
-        await _runPubCommand(results.rest.sublist(1));
+        final cmdArgs = results.rest.isNotEmpty
+            ? results.rest.sublist(1)
+            : commandAndArgs.sublist(1);
+        await _runPubCommand(cmdArgs);
         return;
       }
 
@@ -75,7 +91,9 @@ class NeutronCli {
         throw CliException('Unknown command: $commandName', exitCode: 1);
       }
 
-      final commandArgs = results.rest.sublist(1);
+      final commandArgs = results.rest.isNotEmpty
+          ? results.rest.sublist(1)
+          : commandAndArgs.sublist(1);
       await command.run(commandArgs);
     } on FormatException catch (e) {
       throw CliException(e.message, exitCode: 1);

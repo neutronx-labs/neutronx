@@ -107,6 +107,7 @@ class NewCommand extends Command {
 
     print('Creating directories...');
     await _createDirectories(projectName, [
+      'lib/src/controllers',
       'lib/src/modules/home/controllers',
       'lib/src/modules/home/services',
       'lib/src/modules/home/repositories',
@@ -124,6 +125,8 @@ class NewCommand extends Command {
         '$projectName/lib/${projectName}.dart', template.mainLibrary());
     await _writeFile(
         '$projectName/lib/src/modules/modules.dart', template.modulesIndex);
+    await _writeFile('$projectName/lib/src/controllers/controllers.dart',
+        template.controllersIndex);
     await _writeFile('$projectName/lib/src/modules/home/home_module.dart',
         template.homeModule);
     await _writeFile(
@@ -146,6 +149,7 @@ class NewCommand extends Command {
 
     print('Creating monorepo structure...');
     await _createDirectories(projectName, [
+      'apps/backend/lib/src/controllers',
       'apps/backend/lib/src/modules/home/controllers',
       'apps/backend/lib/src/modules/home/services',
       'apps/backend/lib/src/modules/home/repositories',
@@ -178,6 +182,10 @@ class NewCommand extends Command {
     await _writeFile(
       '$projectName/apps/backend/lib/src/modules/modules.dart',
       template.modulesIndex,
+    );
+    await _writeFile(
+      '$projectName/apps/backend/lib/src/controllers/controllers.dart',
+      template.controllersIndex,
     );
     await _writeFile(
       '$projectName/apps/backend/lib/src/modules/home/home_module.dart',

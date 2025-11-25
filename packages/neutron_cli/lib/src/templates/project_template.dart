@@ -126,6 +126,8 @@ $projectName/
 │       │       ├── home_module.dart
 │       │       ├── services/
 │       │       └── repositories/
+│       ├── controllers/  # Bare controllers (optional)
+│       │   └── controllers.dart    # Manual controller registry
 │       └── middleware/   # Custom middleware
 └── test/                 # Tests
 ```
@@ -143,8 +145,20 @@ $projectName/
 library $pkg;
 
 export 'src/modules/modules.dart';
+export 'src/controllers/controllers.dart';
 ''';
   }
+
+  String get controllersIndex => '''
+import 'package:neutronx/neutronx.dart';
+
+// [CONTROLLER_IMPORTS]
+
+void registerControllers(Router router) {
+  // Bare controllers are mounted under their controller name, e.g. /xyz
+  // [CONTROLLER_REGISTRATIONS]
+}
+''';
 
   String get modulesIndex => '''
 import 'package:neutronx/neutronx.dart';
@@ -166,6 +180,7 @@ import 'package:neutronx/neutronx.dart';
 import 'controllers/home_controller.dart';
 import 'services/home_service.dart';
 import 'repositories/home_repository.dart';
+// [CONTROLLER_IMPORTS]
 
 class HomeModule extends NeutronModule {
   @override
@@ -185,6 +200,7 @@ class HomeModule extends NeutronModule {
     // Wire routes via controller
     final service = ctx.container.get<HomeService>();
     HomeController(service).register(ctx.router);
+    // [CONTROLLER_REGISTRATIONS]
   }
 }
 ''';
@@ -270,6 +286,9 @@ import 'package:$pkg/$pkg.dart';
 void main() async {
   final app = NeutronApp();
   final router = Router();
+  final host = Platform.environment['HOST'] ?? 'localhost';
+  final port =
+      int.tryParse(Platform.environment['PORT'] ?? '3000') ?? 3000;
 
   // Welcome route
   router.get('/', (req) async {
@@ -287,6 +306,9 @@ void main() async {
       'timestamp': DateTime.now().toIso8601String(),
     });
   });
+
+  // Bare controllers registry (optional)
+  registerControllers(router);
 
   // Use router
   app.use(router);
@@ -310,8 +332,8 @@ void main() async {
   app.registerModules(buildModules());
 
   // Start server
-  final server = await app.listen(port: 3000);
-  print('🚀 Server running on http://localhost:\${server.port}');
+  final server = await app.listen(host: host, port: port);
+  print('🚀 Server running on http://\${host}:\${server.port}');
 }
 ''';
   }

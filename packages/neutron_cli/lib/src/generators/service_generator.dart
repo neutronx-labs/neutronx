@@ -3,13 +3,18 @@ import 'package:recase/recase.dart';
 /// Generator for service classes
 class ServiceGenerator {
   final String name;
+  final bool useRepository;
 
-  ServiceGenerator(this.name);
+  ServiceGenerator(
+    this.name, {
+    this.useRepository = true,
+  });
 
   String generate() {
     final rc = ReCase(name);
 
-    return '''
+    if (useRepository) {
+      return '''
 import '../repositories/${name}_repository.dart';
 
 /// Service for ${rc.titleCase} business logic
@@ -50,6 +55,37 @@ class ${rc.pascalCase}Service {
     if (data['name'] == null || (data['name'] as String).isEmpty) {
       throw ArgumentError('Name is required');
     }
+  }
+}
+''';
+    }
+
+    return '''
+/// Service for ${rc.titleCase} business logic
+class ${rc.pascalCase}Service {
+  Future<List<Map<String, dynamic>>> getAll() async {
+    // TODO: implement data fetch
+    return [];
+  }
+
+  Future<Map<String, dynamic>?> getById(String id) async {
+    // TODO: implement fetch by id
+    return null;
+  }
+
+  Future<Map<String, dynamic>> create(Map<String, dynamic> data) async {
+    // TODO: implement create logic
+    return data;
+  }
+
+  Future<Map<String, dynamic>?> update(String id, Map<String, dynamic> data) async {
+    // TODO: implement update logic
+    return {'id': id, ...data};
+  }
+
+  Future<bool> delete(String id) async {
+    // TODO: implement delete logic
+    return true;
   }
 }
 ''';
