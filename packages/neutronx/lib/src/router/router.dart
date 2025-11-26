@@ -104,6 +104,88 @@ class _RouteMatch {
   }
 }
 
+class WebSocketRouteMatch {
+  final Map<String, String> params;
+  final WebSocketHandler handler;
+  final String path;
+
+  WebSocketRouteMatch({
+    required this.params,
+    required this.handler,
+    required this.path,
+  });
+}
+
+class _WebSocketRouteNode {
+  final Map<String, _WebSocketRouteNode> staticChildren = {};
+  _WebSocketRouteNode? paramChild;
+  String? paramName;
+  WebSocketHandler? handler;
+
+  void addRoute(List<String> segments, WebSocketHandler handler) {
+    var node = this;
+
+    for (final segment in segments) {
+      if (segment.startsWith(':')) {
+        node.paramChild ??= _WebSocketRouteNode();
+        node.paramChild!.paramName ??= segment.substring(1);
+        node = node.paramChild!;
+      } else {
+        node = node.staticChildren.putIfAbsent(segment, () => _WebSocketRouteNode());
+      }
+    }
+
+    if (node.handler != null) {
+      throw StateError('WebSocket route already exists on ${segments.join('/')}');
+    }
+    node.handler = handler;
+  }
+
+  WebSocketRouteMatch? match(List<String> segments) {
+    return _matchInternal(segments, 0, <String, String>{});
+  }
+
+  WebSocketRouteMatch? _matchInternal(
+    List<String> segments,
+    int index,
+    Map<String, String> params,
+  ) {
+    if (index == segments.length) {
+      if (handler == null) {
+        return null;
+      }
+      final routePath = '/${segments.join('/')}';
+      return WebSocketRouteMatch(
+        params: params,
+        handler: handler!,
+        path: routePath.isEmpty ? '/' : routePath,
+      );
+    }
+
+    final segment = segments[index];
+
+    final staticChild = staticChildren[segment];
+    if (staticChild != null) {
+      final match = staticChild._matchInternal(segments, index + 1, params);
+      if (match != null) {
+        return match;
+      }
+    }
+
+    final paramChild = this.paramChild;
+    if (paramChild != null && paramChild.paramName != null) {
+      final newParams = Map<String, String>.from(params)
+        ..[paramChild.paramName!] = segment;
+      final match = paramChild._matchInternal(segments, index + 1, newParams);
+      if (match != null) {
+        return match;
+      }
+    }
+
+    return null;
+  }
+}
+
 /// Router class for defining and matching HTTP routes
 ///
 /// The router supports:
@@ -131,6 +213,7 @@ class _RouteMatch {
 /// ```
 class Router {
   final _RouteNode _root = _RouteNode();
+  final _WebSocketRouteNode _wsRoot = _WebSocketRouteNode();
   final List<_Mount> _mounts = [];
 
   /// Registers a GET route
@@ -186,6 +269,22 @@ class Router {
     }
 
     _mounts.add(_Mount(normalizedPrefix, router));
+  }
+
+  /// Registers a websocket route
+  void ws(String path, WebSocketHandler handler) {
+    var normalizedPath = path;
+    if (!normalizedPath.startsWith('/')) {
+      normalizedPath = '/$normalizedPath';
+    }
+
+    // Remove trailing slash (except root)
+    if (normalizedPath.length > 1 && normalizedPath.endsWith('/')) {
+      normalizedPath = normalizedPath.substring(0, normalizedPath.length - 1);
+    }
+
+    final segments = normalizedPath.split('/').where((s) => s.isNotEmpty).toList();
+    _wsRoot.addRoute(segments, handler);
   }
 
   /// Internal method to register a route
@@ -270,6 +369,12 @@ class Router {
     final result = <String>[];
     _collectRoutes(_root, [], result);
 
+    final wsRoutes = <String>[];
+    _collectWebSocketRoutes(_wsRoot, [], wsRoutes);
+    for (final route in wsRoutes) {
+      result.add('WS $route');
+    }
+
     for (final mount in _mounts) {
       result.add('MOUNT ${mount.prefix} -> [nested router]');
     }
@@ -288,6 +393,30 @@ class Router {
 
     final segments = normalized.split('/').where((s) => s.isNotEmpty).toList();
     return _root.match(segments);
+  }
+
+  WebSocketRouteMatch? matchWebSocket(String path) {
+    var normalized = path;
+    if (!normalized.startsWith('/')) {
+      normalized = '/$normalized';
+    }
+    if (normalized.length > 1 && normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+
+    for (final mount in _mounts) {
+      if (normalized.startsWith(mount.prefix)) {
+        final subPath = normalized.substring(mount.prefix.length);
+        final effectiveSubPath = subPath.isEmpty ? '/' : subPath;
+        final match = mount.router.matchWebSocket(effectiveSubPath);
+        if (match != null) {
+          return match;
+        }
+      }
+    }
+
+    final segments = normalized.split('/').where((s) => s.isNotEmpty).toList();
+    return _wsRoot.match(segments);
   }
 
   Handler? _selectHandler(Map<String, Handler> handlers, String method) {
@@ -333,6 +462,26 @@ class Router {
     if (node.paramChild != null) {
       final paramName = node.paramChild!.paramName ?? 'param';
       _collectRoutes(node.paramChild!, [...prefix, ':$paramName'], output);
+    }
+  }
+
+  void _collectWebSocketRoutes(
+    _WebSocketRouteNode node,
+    List<String> prefix,
+    List<String> output,
+  ) {
+    if (node.handler != null) {
+      final routePath = '/${prefix.join('/')}';
+      output.add(routePath.isEmpty ? '/' : routePath);
+    }
+
+    node.staticChildren.forEach((segment, child) {
+      _collectWebSocketRoutes(child, [...prefix, segment], output);
+    });
+
+    if (node.paramChild != null) {
+      final paramName = node.paramChild!.paramName ?? 'param';
+      _collectWebSocketRoutes(node.paramChild!, [...prefix, ':$paramName'], output);
     }
   }
 

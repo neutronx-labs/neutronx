@@ -23,6 +23,15 @@ void main() async {
     });
   });
 
+  // Simple websocket echo
+  router.ws('/ws/echo', (session) async {
+    session.socket.listen(
+      (data) => session.socket.add('echo: $data'),
+      onError: (error, stack) => session.closeWithError(error, stack),
+      onDone: () => session.close(),
+    );
+  });
+
   // Bare controllers registry (optional)
   registerControllers(router);
 
