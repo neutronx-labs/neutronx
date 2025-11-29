@@ -30,3 +30,6 @@ export 'src/modules/module_context.dart';
 
 // Runtime Orchestrator
 export 'src/core/neutron_app.dart';
+
+// WebSocket support
+export 'src/websocket/websocket.dart';

@@ -5,6 +5,9 @@ import 'package:tmp_project/tmp_project.dart';
 void main() async {
   final app = NeutronApp();
   final router = Router();
+  final host = Platform.environment['HOST'] ?? 'localhost';
+  final port =
+      int.tryParse(Platform.environment['PORT'] ?? '3000') ?? 3000;
 
   // Welcome route
   router.get('/', (req) async {
@@ -21,6 +24,15 @@ void main() async {
       'status': 'ok',
       'timestamp': DateTime.now().toIso8601String(),
     });
+  });
+
+  // Simple websocket echo
+  router.ws('/ws/echo', (session) async {
+    session.socket.listen(
+      (data) => session.socket.add('echo: $data'),
+      onError: (error, stack) => session.closeWithError(error, stack),
+      onDone: () => session.close(),
+    );
   });
 
   // Bare controllers registry (optional)
@@ -48,6 +60,6 @@ void main() async {
   app.registerModules(buildModules());
 
   // Start server
-  final server = await app.listen(port: 3000);
-  print('🚀 Server running on http://localhost:${server.port}');
+  final server = await app.listen(host: host, port: port);
+  print('🚀 Server running on http://${host}:${server.port}');
 }

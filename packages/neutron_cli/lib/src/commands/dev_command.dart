@@ -115,6 +115,8 @@ class DevCommand extends Command {
     final signalSubs = <StreamSubscription<ProcessSignal>>[];
 
     var stopping = false;
+    var restarting = false;
+    final shutdown = Completer<void>();
 
     Future<void> stopAndExit([int code = 0]) async {
       if (stopping) return;
@@ -127,7 +129,23 @@ class DevCommand extends Command {
       for (final sig in signalSubs) {
         await sig.cancel();
       }
+      if (!shutdown.isCompleted) {
+        shutdown.complete();
+      }
       exit(code);
+    }
+
+    void monitorExit(Process proc) {
+      proc.exitCode.then((code) async {
+        if (stopping || restarting) return;
+        if (!watch) {
+          await stopAndExit(code);
+          return;
+        }
+        stderr.writeln(
+          'Development server exited with code $code. Waiting for file changes to restart...',
+        );
+      });
     }
 
     signalSubs.add(ProcessSignal.sigint.watch().listen((_) async {
@@ -136,6 +154,9 @@ class DevCommand extends Command {
     signalSubs.add(ProcessSignal.sigterm.watch().listen((_) async {
       await stopAndExit(143); // 128 + SIGTERM
     }));
+
+    monitorExit(current);
+
     if (watch) {
       final dirsToWatch = ['lib', 'bin'];
       final watchers = dirsToWatch
@@ -153,9 +174,19 @@ class DevCommand extends Command {
         lastChange = now;
 
         print('↻ Change detected in ${event.path}. Restarting...');
-        current.kill(ProcessSignal.sigterm);
-        await current.exitCode;
-        current = await start();
+        restarting = true;
+        try {
+          current.kill(ProcessSignal.sigterm);
+          await current.exitCode;
+          current = await start();
+          monitorExit(current);
+        } catch (e, stack) {
+          stderr.writeln('ERROR: Failed to restart server: $e');
+          stderr.writeln('Stack trace: $stack');
+          await stopAndExit(1);
+        } finally {
+          restarting = false;
+        }
       }
 
       for (final watcher in watchers) {
@@ -163,14 +194,7 @@ class DevCommand extends Command {
       }
     }
 
-    // Wait for current to exit (Ctrl+C)
-    final exitCode = await current.exitCode;
-    for (final sub in subs) {
-      await sub.cancel();
-    }
-    for (final sig in signalSubs) {
-      await sig.cancel();
-    }
-    exit(exitCode);
+    // Keep the CLI alive until a signal requests shutdown
+    await shutdown.future;
   }
 }

@@ -166,6 +166,11 @@ class NeutronApp {
 
     // Handle incoming requests
     _server!.listen((HttpRequest httpRequest) async {
+      if (WebSocketTransformer.isUpgradeRequest(httpRequest)) {
+        await _handleWebSocket(httpRequest, maxRequestBodyBytes);
+        return;
+      }
+
       try {
         // Convert HttpRequest to our Request abstraction
         final request = await Request.fromHttpRequest(
@@ -198,6 +203,77 @@ class NeutronApp {
     });
 
     return _server!;
+  }
+
+  Future<void> _handleWebSocket(
+    HttpRequest httpRequest,
+    int? maxRequestBodyBytes,
+  ) async {
+    try {
+      if (_router == null) {
+        httpRequest.response.statusCode = 503;
+        await httpRequest.response.close();
+        return;
+      }
+
+      final match = _router!.matchWebSocket(httpRequest.uri.path);
+      if (match == null) {
+        httpRequest.response.statusCode = 404;
+        await httpRequest.response.close();
+        return;
+      }
+
+      var request = await Request.fromHttpRequest(
+        httpRequest,
+        params: match.params,
+        maxBodyBytes: maxRequestBodyBytes,
+      );
+
+      if (request.path != match.path) {
+        request = request.copyWith(
+          path: match.path,
+          context: {...request.context, '_originalPath': request.path},
+        );
+      }
+
+      WebSocket? socket;
+      try {
+        socket = await WebSocketTransformer.upgrade(httpRequest);
+      } catch (_) {
+        // If upgrade fails, surface a bad request
+        httpRequest.response.statusCode = 400;
+        await httpRequest.response.close();
+        return;
+      }
+
+      final session = WebSocketSession(
+        socket: socket,
+        request: request,
+        params: match.params,
+        query: request.query,
+      );
+
+      try {
+        await match.handler(session);
+      } catch (e, stackTrace) {
+        try {
+          await session.close(WebSocketStatus.internalServerError, 'Unhandled error');
+        } catch (closeError) {
+          print('ERROR (websocket close failed): $closeError');
+        }
+        print('ERROR (websocket): $e');
+        print('Stack trace: $stackTrace');
+      }
+    } catch (e, stackTrace) {
+      try {
+        httpRequest.response.statusCode = 500;
+        await httpRequest.response.close();
+      } catch (closeError) {
+        print('ERROR (response close failed): $closeError');
+      }
+      print('ERROR (websocket): $e');
+      print('Stack trace: $stackTrace');
+    }
   }
 
   /// Registers all modules with the application
