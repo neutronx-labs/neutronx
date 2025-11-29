@@ -266,7 +266,9 @@ class NeutronApp {
       try {
         httpRequest.response.statusCode = 500;
         await httpRequest.response.close();
-      } catch (_) {}
+      } catch (closeError) {
+        print('ERROR (response close failed): $closeError');
+      }
       print('ERROR (websocket): $e');
       print('Stack trace: $stackTrace');
     }
