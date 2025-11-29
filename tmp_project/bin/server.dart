@@ -5,6 +5,9 @@ import 'package:tmp_project/tmp_project.dart';
 void main() async {
   final app = NeutronApp();
   final router = Router();
+  final host = Platform.environment['HOST'] ?? 'localhost';
+  final port =
+      int.tryParse(Platform.environment['PORT'] ?? '3000') ?? 3000;
 
   // Welcome route
   router.get('/', (req) async {
@@ -57,6 +60,6 @@ void main() async {
   app.registerModules(buildModules());
 
   // Start server
-  final server = await app.listen(port: 3000);
-  print('🚀 Server running on http://localhost:${server.port}');
+  final server = await app.listen(host: host, port: port);
+  print('🚀 Server running on http://${host}:${server.port}');
 }
