@@ -258,7 +258,9 @@ class NeutronApp {
       } catch (e, stackTrace) {
         try {
           await session.close(WebSocketStatus.internalServerError, 'Unhandled error');
-        } catch (_) {}
+        } catch (closeError) {
+          print('ERROR (websocket close failed): $closeError');
+        }
         print('ERROR (websocket): $e');
         print('Stack trace: $stackTrace');
       }

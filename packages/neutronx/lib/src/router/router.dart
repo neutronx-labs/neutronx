@@ -158,7 +158,7 @@ class _WebSocketRouteNode {
       return WebSocketRouteMatch(
         params: params,
         handler: handler!,
-        path: routePath.isEmpty ? '/' : routePath,
+        path: routePath,
       );
     }
 
@@ -271,7 +271,22 @@ class Router {
     _mounts.add(_Mount(normalizedPrefix, router));
   }
 
-  /// Registers a websocket route
+  /// Registers a WebSocket route
+  ///
+  /// The handler will be invoked when a WebSocket upgrade request matches the path.
+  /// Supports path parameters using colon syntax (e.g., `/ws/:id`).
+  ///
+  /// Example:
+  /// ```dart
+  /// router.ws('/chat/:room', (session) async {
+  ///   final room = session.params['room'];
+  ///   session.send('Welcome to $room!');
+  ///   
+  ///   await for (final message in session.messages) {
+  ///     session.send('Echo: $message');
+  ///   }
+  /// });
+  /// ```
   void ws(String path, WebSocketHandler handler) {
     var normalizedPath = path;
     if (!normalizedPath.startsWith('/')) {
@@ -472,7 +487,7 @@ class Router {
   ) {
     if (node.handler != null) {
       final routePath = '/${prefix.join('/')}';
-      output.add(routePath.isEmpty ? '/' : routePath);
+      output.add(routePath);
     }
 
     node.staticChildren.forEach((segment, child) {

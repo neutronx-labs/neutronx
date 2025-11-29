@@ -219,6 +219,136 @@ void main() {
       expect(response.body.isEmpty, isTrue);
     });
   });
+
+  group('WebSocket routing', () {
+    late Router router;
+
+    setUp(() {
+      router = Router();
+    });
+
+    test('ws() registers a WebSocket route', () {
+      router.ws('/ws', (session) async {});
+
+      final routes = router.routes;
+      expect(routes, contains('WS /ws'));
+    });
+
+    test('ws() normalizes path by adding leading slash', () {
+      router.ws('ws', (session) async {});
+
+      final routes = router.routes;
+      expect(routes, contains('WS /ws'));
+    });
+
+    test('ws() normalizes path by removing trailing slash', () {
+      router.ws('/ws/', (session) async {});
+
+      final routes = router.routes;
+      expect(routes, contains('WS /ws'));
+    });
+
+    test('ws() supports path parameters with colon syntax', () {
+      router.ws('/ws/:id', (session) async {});
+
+      final routes = router.routes;
+      expect(routes, contains('WS /ws/:id'));
+    });
+
+    test('ws() throws StateError for duplicate routes', () {
+      router.ws('/ws', (session) async {});
+
+      expect(
+        () => router.ws('/ws', (session) async {}),
+        throwsStateError,
+      );
+    });
+
+    test('matchWebSocket() returns null for non-matching paths', () {
+      router.ws('/ws', (session) async {});
+
+      final match = router.matchWebSocket('/notfound');
+      expect(match, isNull);
+    });
+
+    test('matchWebSocket() matches static route', () {
+      router.ws('/ws', (session) async {});
+
+      final match = router.matchWebSocket('/ws');
+      expect(match, isNotNull);
+      expect(match!.path, equals('/ws'));
+      expect(match.params, isEmpty);
+    });
+
+    test('matchWebSocket() matches dynamic route and extracts params', () {
+      router.ws('/ws/:id', (session) async {});
+
+      final match = router.matchWebSocket('/ws/123');
+      expect(match, isNotNull);
+      expect(match!.params['id'], equals('123'));
+    });
+
+    test('matchWebSocket() extracts multiple path parameters', () {
+      router.ws('/chat/:room/:user', (session) async {});
+
+      final match = router.matchWebSocket('/chat/lobby/john');
+      expect(match, isNotNull);
+      expect(match!.params['room'], equals('lobby'));
+      expect(match.params['user'], equals('john'));
+    });
+
+    test('matchWebSocket() normalizes path by adding leading slash', () {
+      router.ws('/ws', (session) async {});
+
+      final match = router.matchWebSocket('ws');
+      expect(match, isNotNull);
+      expect(match!.path, equals('/ws'));
+    });
+
+    test('matchWebSocket() normalizes path by removing trailing slash', () {
+      router.ws('/ws', (session) async {});
+
+      final match = router.matchWebSocket('/ws/');
+      expect(match, isNotNull);
+      expect(match!.path, equals('/ws'));
+    });
+
+    test('matchWebSocket() works with mounted routers', () {
+      final apiRouter = Router();
+      apiRouter.ws('/events', (session) async {});
+
+      router.mount('/api', apiRouter);
+
+      final match = router.matchWebSocket('/api/events');
+      expect(match, isNotNull);
+      expect(match!.path, equals('/events'));
+    });
+
+    test('matchWebSocket() with mounted routers extracts params', () {
+      final apiRouter = Router();
+      apiRouter.ws('/stream/:channel', (session) async {});
+
+      router.mount('/api', apiRouter);
+
+      final match = router.matchWebSocket('/api/stream/updates');
+      expect(match, isNotNull);
+      expect(match!.params['channel'], equals('updates'));
+    });
+
+    test('matchWebSocket() prioritizes static over dynamic segments', () {
+      router.ws('/ws/status', (session) async {});
+      router.ws('/ws/:id', (session) async {});
+
+      final staticMatch = router.matchWebSocket('/ws/status');
+      expect(staticMatch, isNotNull);
+      expect(staticMatch!.path, equals('/ws/status'));
+      expect(staticMatch.params, isEmpty);
+
+      final dynamicMatch = router.matchWebSocket('/ws/123');
+      expect(dynamicMatch, isNotNull);
+      expect(dynamicMatch!.params['id'], equals('123'));
+    });
+  });
 }
 
 // Factory function to create mock Request for testing
