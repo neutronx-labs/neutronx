@@ -180,6 +180,10 @@ class DevCommand extends Command {
           await current.exitCode;
           current = await start();
           monitorExit(current);
+        } catch (e, stack) {
+          stderr.writeln('ERROR: Failed to restart server: $e');
+          stderr.writeln('Stack trace: $stack');
+          await stopAndExit(1);
         } finally {
           restarting = false;
         }
