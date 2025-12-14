@@ -149,7 +149,8 @@ class NeutronApp {
     await _registerModules();
 
     // Register plugins before starting the server
-    await _registerPlugins();
+      await _loadPlugins();      // plugin.onInit()
+      await _readyPlugins();     // plugin.onReady()
 
     // Build the final handler
     final handler = _buildHandler();
@@ -347,16 +348,10 @@ class NeutronApp {
   }
 
   /// Registers all plugins with the application
-  Future<void> _registerPlugins() async {
-    if (_plugins.isEmpty) {
-      return;
-    }
+  Future<void> _loadPlugins() async {
+    if (_plugins.isEmpty) return;
 
-    if (_router == null) {
-      throw StateError('No router configured. Call use(router) first.');
-    }
-
-    final pluginContext = PluginContext(
+    final ctx = PluginContext(
       container: _container,
       router: _router!,
       config: _config,
@@ -364,22 +359,58 @@ class NeutronApp {
 
     for (final plugin in _plugins) {
       try {
-        await plugin.register(pluginContext);
-        print('Plugin registered: ${plugin.name}');
-      } catch (e, stackTrace) {
-        print('Failed to register plugin ${plugin.name}: $e');
-        print('Stack trace: $stackTrace');
+        await plugin.onInit(ctx);
+        print('Plugin loaded: ${plugin.name}');
+      } catch (e, st) {
+        print('Failed to load plugin ${plugin.name}: $e');
+        print(st);
         rethrow;
       }
     }
   }
+
+  Future<void> _readyPlugins() async {
+    if (_plugins.isEmpty) return;
+
+    final ctx = PluginContext(
+      container: _container,
+      router: _router!,
+      config: _config,
+    );
+
+    for (final plugin in _plugins) {
+      try {
+        await plugin.onReady(ctx);
+        print('Plugin ready: ${plugin.name}');
+      } catch (e, st) {
+        print('Failed to ready plugin ${plugin.name}: $e');
+        print(st);
+        rethrow;
+      }
+    }
+  }
+
 
   /// Closes the HTTP server
   Future<void> close({bool force = false}) async {
     if (_isShuttingDown) return;
     _isShuttingDown = true;
     try {
-
+      // Destroy plugins (reverse order)
+      final ctx = PluginContext(
+      container: _container,
+      router: _router!,
+      config: _config,
+    );
+      
+      for (final plugin in _plugins.reversed) {
+        try {
+          await plugin.onDispose(ctx);
+        } catch (e) {
+          print('Failed to destroy plugin ${plugin.name}: $e');
+        }
+      }
+      
       // Run module teardowns in reverse order
       for (final module in _modules.reversed) {
         try {
