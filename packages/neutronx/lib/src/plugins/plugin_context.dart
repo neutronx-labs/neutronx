@@ -31,6 +31,17 @@ class PluginContext {
   T? getConfig<T>(String key, [T? defaultValue]) {
     return config[key] as T? ?? defaultValue;
   }
+  
+  /// Check if a config entry exists
+  bool hasConfig(String key) => config.containsKey(key);
+
+  /// Require a config key; throw if missing
+  T ensureConfig<T>(String key) {
+    if (!config.containsKey(key)) {
+      throw Exception("Missing required config key: $key");
+    }
+    return config[key] as T;
+  }
 
   /// Convenience method to log messages with plugin context
   void log(String message) {
